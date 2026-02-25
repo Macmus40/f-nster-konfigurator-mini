@@ -4,933 +4,178 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Interaktiv Fönsterkonfigurator</title>
+    <title>Housefactors Edge | Pure Premium</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Montserrat:wght@700;800;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f8fafc; /* bg-slate-50 */
-        }
-        .styled-select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 0.5rem center;
-            background-repeat: no-repeat;
-            background-size: 1.5em 1.5em;
-            padding-right: 2.5rem;
-        }
-        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
-        .animate-slide-up { animation: slideUp 0.5s ease-in-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .ai-bubble::after {
-            content: '';
-            position: absolute;
-            bottom: -8px;
-            right: 20px;
-            width: 0;
-            height: 0;
-            border-left: 10px solid transparent;
-            border-right: 10px solid transparent;
-            border-top: 10px solid white;
-        }
-        .ai-bubble.thinking::after {
-            border-top-color: #e2e8f0; /* bg-slate-200 */
-        }
-        .price-tag {
-            background: linear-gradient(135deg, #0ea5e9, #2563eb);
-        }
-    </style>
-</head>
-<body class="bg-slate-50">
-    <div id="root">
-        <div class="container mx-auto p-4 sm:p-6 md:p-8 text-slate-800">
-            <div class="flex justify-between items-start mb-10">
-                <header class="text-left flex-grow">
-                    <h1 id="header-title" class="text-4xl md:text-5xl font-bold text-slate-900"></h1>
-                    <p id="header-subtitle" class="text-lg text-slate-600 mt-2 max-w-2xl"></p>
-                </header>
-                <div id="language-switcher" class="flex items-center gap-4 p-2 rounded-lg bg-slate-100/80 text-sm">
-                </div>
-            </div>
-    
-            <main class="space-y-16">
-                <section>
-                    <h2 id="section-title-profile" class="text-3xl font-bold text-slate-800 text-center mb-8 tracking-tight"></h2>
-                    <div id="profile-selector" class="flex justify-center flex-wrap gap-6 px-4"></div>
-                </section>
-    
-                <section>
-                    <h2 id="section-title-product" class="text-3xl font-bold text-slate-800 text-center mb-8 tracking-tight"></h2>
-                    <div id="product-carousel" class="flex justify-center gap-5 p-4 flex-wrap min-h-[220px]"></div>
-                </section>
-    
-                <section id="application-form-section" class="min-h-[250px]"></section>
-            </main>
-            <footer class="text-center mt-16 pt-8 border-t border-slate-200 text-slate-500 text-sm">
-                <p>&copy; <span id="current-year"></span> <span id="footer-text"></span></p>
-            </footer>
-        </div>
-    </div>
-
-    <!-- AI Assistant "Duch G" -->
-    <div id="ai-assistant" class="fixed bottom-5 right-5 z-50 transition-all duration-500 animate-slide-up">
-        <div class="flex items-end gap-3">
-            <div id="ai-bubble" class="ai-bubble relative w-64 p-4 bg-white rounded-xl shadow-2xl transition-all">
-                <p id="ai-message" class="text-sm text-slate-700"></p>
-                <div id="ai-loader" class="hidden items-center">
-                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s] mx-1"></div>
-                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                </div>
-            </div>
-            <div id="ai-icon" class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center shadow-lg text-white text-3xl font-bold">G</div>
-        </div>
-    </div>
-
-<script type="module">
-    import { GoogleGenAI } from "https://esm.sh/@google/genai";
-
-    // --- CONFIGURATION & DATA ---
-    const API_KEY = "TUTAJ_WKLEJ_SWOJ_KLUCZ_API";
-
-    const PROFILES = [
-      { name: 'Iglo5', type: 'PVC', imageSrc: 'https://housefactors.se/lib/s3ul9e/iglo_5-classic-drutex-m6hydmn1.png', readMoreUrl: 'https://www.fonsterfaktor.se/iglo5' },
-      { name: 'Iglo5 Classic', type: 'PVC', imageSrc: 'https://housefactors.se/lib/s3ul9e/IGLO5clasicc-m6uxjwaq.png', readMoreUrl: 'https://www.fonsterfaktor.se/iglo-5-classic' },
-      { name: 'Iglo Energy', type: 'PVC', imageSrc: 'https://housefactors.se/lib/s3ul9e/IGLO-Energy-m6uxjq87.png', readMoreUrl: 'https://www.fonsterfaktor.se/iglo-energy' },
-      { name: 'Softline', type: 'TRÄ', imageSrc: 'https://housefactors.se/lib/s3ul9e/softline-m6uxjz1p.png', readMoreUrl: 'https://www.fonsterfaktor.se/softline---68-78-88' },
-      { name: 'Duoline', type: 'TRÄ', imageSrc: 'https://housefactors.se/lib/s3ul9e/duoline-m6uxjlal.png', readMoreUrl: 'https://www.fonsterfaktor.se/duoline---68-78-88' },
-      { name: 'Alu-MB70', type: 'ALU', imageSrc: 'https://housefactors.se/lib/s3ul9e/MB70-m6uxjxnh.png', readMoreUrl: 'https://www.fonsterfaktor.se/mb-70hi' },
-    ];
-    
-    const PRODUCTS = [
-      { name: '1-luft-F', imageSrc: 'https://housefactors.se/lib/s3ul9e/1-LUFT-F-m6netjvv.gif', availableFor: ['Iglo5', 'Iglo5 Classic', 'Iglo Energy', 'Softline', 'Duoline'], commonSizes: ['1000x1200', '1100x1300', '1200x1400'] },
-      { name: '1-luft-K', imageSrc: 'https://housefactors.se/lib/s3ul9e/animated-k-m7vnbn85.gif', availableFor: ['Iglo5', 'Iglo5 Classic', 'Iglo Energy', 'Softline', 'Duoline'], commonSizes: ['1000x1200', '1100x1300', '1200x1400'] },
-      { name: '1-luft-DH', imageSrc: 'https://housefactors.se/lib/s3ul9e/1-LUFT-DH-m6netgep.gif', availableFor: ['Iglo5', 'Iglo5 Classic', 'Iglo Energy', 'Softline', 'Duoline'], commonSizes: ['800x2100', '900x2100', '1000x2100'] },
-      { name: 'Top Swing', imageSrc: 'https://housefactors.se/lib/s3ul9e/animated-top-swing-m7vnafwk.gif', availableFor: ['Softline', 'Duoline'], commonSizes: ['1200x800', '1400x1000'] },
-      { name: '2-LUFT-DKV_DKH', imageSrc: 'https://housefactors.se/lib/s3ul9e/2-LUFT-DKV_DKH-m6netneb.gif', availableFor: ['Iglo5', 'Iglo5 Classic', 'Iglo Energy', 'Softline', 'Duoline', 'Alu-MB70'], commonSizes: ['1800x1400', '2000x1400', '2200x1500'] },
-      { name: 'dorr-1-LUFT-DH-utat', imageSrc: 'https://housefactors.se/lib/s3ul9e/dorr-1-LUFT-DHutat-m6netqve.gif', availableFor: ['Iglo5', 'Iglo5 Classic', 'Softline', 'Duoline', 'Alu-MB70'], commonSizes: ['900x2100', '1000x2100'] },
-      { name: 'skjutdorr-HS-2-LUFT', imageSrc: 'https://housefactors.se/lib/s3ul9e/skjutdorr-HS-2-LUFT-HSH_FF-m6netzr1.gif', availableFor: ['Iglo Energy', 'Softline', 'Duoline', 'Alu-MB70'], commonSizes: ['2500x2200', '3000x2200', '3500x2300'] },
-      { name: 'skjutdorr-HS-4-LUFT', imageSrc: 'https://housefactors.se/lib/s3ul9e/skjutdorr-HS-4-LUFT-FF_HSVA_HSH_FF-m6neu378.gif', availableFor: ['Iglo Energy', 'Softline', 'Duoline', 'Alu-MB70'], commonSizes: ['4000x2200', '4500x2200', '5000x2300'] },
-    ];
-
-    const PRICING_RULES = {
-        default: {
-            minSqM: 0.5, maxSqM: 4.0, minPrice: 800, maxPrice: 3000,
-            profileMultipliers: { 'Iglo5': 1.0, 'Iglo5 Classic': 1.05, 'Iglo Energy': 1.2, 'Softline': 1.4, 'Duoline': 1.6, 'Alu-MB70': 2.0 },
-            options: { '3-glas': 250, 'med_ventilation': 120 }
-        },
-        'skjutdorr-HS-2-LUFT': {
-            minSqM: 2.5, maxSqM: 8.0, minPrice: 4000, maxPrice: 9000,
-            profileMultipliers: { 'Iglo Energy': 1.2, 'Softline': 1.4, 'Duoline': 1.6, 'Alu-MB70': 2.0 },
-            options: { '3-glas': 400, 'med_ventilation': 0 }
-        },
-        'skjutdorr-HS-4-LUFT': {
-            minSqM: 5.0, maxSqM: 15.0, minPrice: 8000, maxPrice: 18000,
-            profileMultipliers: { 'Iglo Energy': 1.2, 'Softline': 1.4, 'Duoline': 1.6, 'Alu-MB70': 2.0 },
-            options: { '3-glas': 800, 'med_ventilation': 0 }
-        }
-    };
-    
-    const ICONS = {
-        plus: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>`,
-        trash: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.134H8.09c-1.18 0-2.09.954-2.09 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>`,
-        send: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>`,
-        spinner: `<svg class="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`,
-        document: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto text-slate-400"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>`,
-        check: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto text-teal-500 mb-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
-        error: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto text-red-500 mb-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>`,
-        flag_sv: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 3"><rect width="5" height="3" fill="#006aa7"/><path d="M0 1h5M1.5 0v3" stroke="#fecc00" stroke-width="1"/></svg>`,
-        flag_pl: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 3"><rect width="5" height="3" fill="#fff"/><rect width="5" height="1.5" y="1.5" fill="#dc143c"/></svg>`,
-    };
-
-    const TRANSLATIONS = {
-        sv: {
-            lang: 'sv',
-            currency: 'SEK',
-            header_title: 'Interaktiv Konfigurator',
-            header_subtitle: 'Beräkna priset på dina fönster och dörrar i realtid.',
-            section_title_profile: '1. Välj profil',
-            section_title_product: '2. Välj produkt(er)',
-            section_title_spec: '3. Specificera dina val',
-            section_title_contact: '4. Dina kontaktuppgifter',
-            read_more: 'Läs mer',
-            profile_select_prompt: 'Välj en profil för att se tillgängliga produkter.',
-            no_products_prompt: 'Inga dedikerade produkter för profilen',
-            form_placeholder_title: 'Dina valda produkter kommer att visas här',
-            form_placeholder_subtitle: 'Börja med att välja en profil och lägga till produkter.',
-            label_width: 'Bredd (mm)',
-            label_height: 'Höjd (mm)',
-            label_quantity: 'Antal',
-            label_glass_type: 'Glastyp',
-            label_ventilation_type: 'Ventilation',
-            option_glass_2: '2-glas',
-            option_glass_3: '3-glas',
-            option_vent_no: 'Utan',
-            option_vent_yes: 'Med',
-            label_common_sizes: 'Vanliga mått:',
-            price_custom_size: 'Anpassat mått',
-            price_enter_dims: 'Ange mått',
-            section: 'Sektion',
-            profile: 'Profil',
-            label_subtotal: 'Delsumma:',
-            label_discount: 'Rabatt:',
-            label_total: 'Att betala:',
-            label_first_name: 'Förnamn',
-            label_last_name: 'Efternamn',
-            label_email: 'E-post',
-            label_phone: 'Telefon',
-            label_address: 'Adress',
-            label_message: 'Meddelande (valfritt)',
-            button_submit: 'Skicka offertförfrågan',
-            button_sending: 'Skickar...',
-            button_try_again: 'Försök igen',
-            success_title: 'Offertförfrågan skickad!',
-            success_subtitle: 'Tack för din förfrågan. Vi kontaktar dig inom kort.',
-            error_title: 'Ett fel uppstod',
-            error_subtitle: 'Det gick inte att skicka din förfrågan. Försök igen senare eller kontakta oss direkt.',
-            footer_text: 'Housefactors. Alla rättigheter förbehållna.',
-            ai_welcome: 'Hej! Jag är Spöket G, din personliga assistent. Jag hjälper dig att konfigurera din beställning. Börja med att välja en profil.',
-            ai_no_key: 'Gemini API-nyckel är inte konfigurerad. Assistenten är inte tillgänglig.',
-            ai_error: 'Kunde inte starta AI-assistenten.',
-            ai_tip_error: 'Jag kan tyvärr inte ge några råd just nu.',
-            ai_prompt_profile: (name, type) => `Du är Spöket G, en vänlig konfigurationsassistent för fönster. Användaren har precis valt profilen "${name}" av typen "${type}". Ge ett kort (1-2 meningar), hjälpsamt och uppmuntrande råd om detta val. Tala på svenska.`,
-            ai_prompt_5_products: `Du är Spöket G. Användaren har lagt till 5 produkter. Påminn dem vänligt om att vid 10 produkter är leveransen gratis. Tala på svenska, kortfattat.`,
-            ai_prompt_10_products: `Du är Spöket G. Användaren har precis lagt till den 10:e produkten! Gratulera dem och berätta att de just har aktiverat gratis leverans. Tala entusiastiskt men kortfattat på svenska.`,
-            ai_prompt_discount: (amount) => `Du är Spöket G. Användarens ordersumma översteg ${amount} SEK. Informera dem om att de får 5% rabatt på hela beställningen. Tala glatt och kortfattat på svenska.`,
-            email_title: 'Ny offertförfrågan från Konfiguratorn',
-            email_section_products: 'Valda produkter',
-            email_header_index: '#',
-            email_header_product: 'Produkt',
-            email_header_dims: 'Mått (BxH)',
-            email_header_quantity: 'Antal',
-            email_header_glass: 'Glas',
-            email_header_vent: 'Ventilation',
-            email_header_price: 'Pris',
-            email_section_customer: 'Kunduppgifter',
-            email_label_name: 'Namn',
-            email_label_email: 'E-post',
-            email_label_phone: 'Telefon',
-            email_label_address: 'Adress',
-            email_label_message: 'Meddelande',
-            email_no_message: 'Inget ytterligare meddelande.',
-            email_footer: 'Förfrågan genererad av Housefactors Interaktiva Konfigurator.',
-        },
-        pl: {
-            lang: 'pl',
-            currency: 'PLN',
-            header_title: 'Interaktywny Konfigurator',
-            header_subtitle: 'Oblicz cenę swoich okien i drzwi w czasie rzeczywistym.',
-            section_title_profile: '1. Wybierz profil',
-            section_title_product: '2. Wybierz produkt(y)',
-            section_title_spec: '3. Sprecyzuj swoje wybory',
-            section_title_contact: '4. Twoje dane kontaktowe',
-            read_more: 'Czytaj więcej',
-            profile_select_prompt: 'Wybierz profil, aby zobaczyć dostępne produkty.',
-            no_products_prompt: 'Brak dedykowanych produktów dla profilu',
-            form_placeholder_title: 'Twoje wybrane produkty pojawią się tutaj',
-            form_placeholder_subtitle: 'Zacznij od wybrania profilu i dodania produktów.',
-            label_width: 'Szerokość (mm)',
-            label_height: 'Wysokość (mm)',
-            label_quantity: 'Ilość',
-            label_glass_type: 'Rodzaj szyby',
-            label_ventilation_type: 'Wentylacja',
-            option_glass_2: '2-szybowy',
-            option_glass_3: '3-szybowy',
-            option_vent_no: 'Bez',
-            option_vent_yes: 'Z',
-            label_common_sizes: 'Popularne wymiary:',
-            price_custom_size: 'Wymiar niestandardowy',
-            price_enter_dims: 'Podaj wymiary',
-            section: 'Sekcja',
-            profile: 'Profil',
-            label_subtotal: 'Suma częściowa:',
-            label_discount: 'Rabat:',
-            label_total: 'Do zapłaty:',
-            label_first_name: 'Imię',
-            label_last_name: 'Nazwisko',
-            label_email: 'E-mail',
-            label_phone: 'Telefon',
-            label_address: 'Adres',
-            label_message: 'Wiadomość (opcjonalnie)',
-            button_submit: 'Wyślij zapytanie ofertowe',
-            button_sending: 'Wysyłanie...',
-            button_try_again: 'Spróbuj ponownie',
-            success_title: 'Zapytanie ofertowe wysłane!',
-            success_subtitle: 'Dziękujemy za zapytanie. Skontaktujemy się z Tobą wkrótce.',
-            error_title: 'Wystąpił błąd',
-            error_subtitle: 'Nie udało się wysłać zapytania. Spróbuj ponownie później lub skontaktuj się z nami bezpośrednio.',
-            footer_text: 'Housefactors. Wszelkie prawa zastrzeżone.',
-            ai_welcome: 'Cześć! Jestem Duchem G, Twoim osobistym asystentem. Pomogę Ci skonfigurować zamówienie. Zacznij od wybrania profilu.',
-            ai_no_key: 'Klucz API Gemini nie jest skonfigurowany. Asystent jest niedostępny.',
-            ai_error: 'Nie można uruchomić asystenta AI.',
-            ai_tip_error: 'Niestety, nie mogę teraz udzielić żadnych rad.',
-            ai_prompt_profile: (name, type) => `Jesteś Duchem G, przyjaznym asystentem konfiguracji okien. Użytkownik właśnie wybrał profil "${name}" typu "${type}". Udziel krótkiej (1-2 zdania), pomocnej i zachęcającej porady na temat tego wyboru. Mów po polsku.`,
-            ai_prompt_5_products: `Jesteś Duchem G. Użytkownik dodał 5 produktów. Przypomnij mu grzecznie, że przy 10 produktach dostawa jest darmowa. Mów po polsku, krótko.`,
-            ai_prompt_10_products: `Jesteś Duchem G. Użytkownik właśnie dodał 10. produkt! Pogratuluj mu i powiedz, że właśnie aktywował darmową dostawę. Mów entuzjastycznie, ale krótko, po polsku.`,
-            ai_prompt_discount: (amount) => `Jesteś Duchem G. Suma zamówienia użytkownika przekroczyła ${amount} PLN. Poinformuj go, że otrzymuje 5% rabatu na całe zamówienie. Mów radośnie i krótko, po polsku.`,
-            email_title: 'Nowe zapytanie ofertowe z Konfiguratora',
-            email_section_products: 'Wybrane produkty',
-            email_header_index: '#',
-            email_header_product: 'Produkt',
-            email_header_dims: 'Wymiary (SxW)',
-            email_header_quantity: 'Ilość',
-            email_header_glass: 'Szyba',
-            email_header_vent: 'Wentylacja',
-            email_header_price: 'Cena',
-            email_section_customer: 'Dane klienta',
-            email_label_name: 'Imię i nazwisko',
-            email_label_email: 'E-mail',
-            email_label_phone: 'Telefon',
-            email_label_address: 'Adres',
-            email_label_message: 'Wiadomość',
-            email_no_message: 'Brak dodatkowej wiadomości.',
-            email_footer: 'Zapytanie wygenerowane przez Interaktywny Konfigurator Housefactors.',
-        }
-    }
-
-    // --- STATE MANAGEMENT ---
-    let state = {
-        currentLanguage: 'sv',
-        selectedProfile: null,
-        formEntries: [],
-        submissionStatus: 'idle', // idle, sending, success, error
-        ai: {
-            isReady: false,
-            isLoading: false,
-            instance: null,
-            message: "",
-        },
-        totals: {
-            subtotal: 0,
-            discount: 0,
-            final: 0,
-        }
-    };
-    
-    // --- GEMINI AI ASSISTANT ---
-    const aiMessageEl = document.getElementById('ai-message');
-    const aiLoaderEl = document.getElementById('ai-loader');
-
-    const initializeAI = () => {
-        const T = TRANSLATIONS[state.currentLanguage];
-        state.ai.message = T.ai_welcome;
-
-        if (!API_KEY || API_KEY === "TUTAJ_WKLEJ_SWOJ_KLUCZ_API") {
-            state.ai.message = T.ai_no_key;
-            renderAIAssistant();
-            return;
-        }
-        try {
-            state.ai.instance = new GoogleGenAI({ apiKey: API_KEY });
-            state.ai.isReady = true;
-            console.log("Spöket G är redo att hjälpa!");
-        } catch (error) {
-            console.error("Fel vid initiering av Gemini:", error);
-            state.ai.message = T.ai_error;
-        }
-        renderAIAssistant();
-    };
-
-    const setAIMessage = (text, isLoading = false) => {
-        state.ai.isLoading = isLoading;
-        if (!isLoading) {
-            state.ai.message = text;
-        }
-        renderAIAssistant();
-    };
-
-    const getAITip = async (context, data) => {
-        if (!state.ai.isReady || state.ai.isLoading) return;
-        const T = TRANSLATIONS[state.currentLanguage];
-
-        let prompt;
-        switch(context) {
-            case 'profile_selected':
-                prompt = T.ai_prompt_profile(data.name, data.type);
-                break;
-            case 'product_added':
-                if (data.count < 2) return;
-                if (data.count === 5) {
-                    prompt = T.ai_prompt_5_products;
-                } else if (data.count === 10) {
-                     prompt = T.ai_prompt_10_products;
-                } else {
-                    return;
-                }
-                break;
-            case 'price_updated':
-                const discountThreshold = state.currentLanguage === 'sv' ? 15000 : 3000;
-                if (data.total > discountThreshold && state.totals.discount === 0) {
-                     prompt = T.ai_prompt_discount(discountThreshold);
-                } else {
-                    return;
-                }
-                break;
-            default:
-                return;
-        }
-        
-        setAIMessage("", true);
-        try {
-            const result = await state.ai.instance.models.generateContent({ model: "gemini-2.5-flash-preview-04-17", contents: prompt });
-            setAIMessage(result.text);
-        } catch (error) {
-            console.error("Fel vid anrop till Gemini:", error);
-            setAIMessage(T.ai_tip_error, false);
-        }
-    };
-
-    // --- DOM Elements ---
-    const profileSelectorContainer = document.getElementById('profile-selector');
-    const productCarouselContainer = document.getElementById('product-carousel');
-    const applicationFormSection = document.getElementById('application-form-section');
-    const languageSwitcherContainer = document.getElementById('language-switcher');
-    document.getElementById('current-year').textContent = new Date().getFullYear();
-    emailjs.init("nkABopy-OhY0pGK5w");
-
-    // --- RENDER FUNCTIONS ---
-    
-    const renderAll = () => {
-        document.documentElement.lang = state.currentLanguage;
-        renderStaticTexts();
-        renderLanguageSwitcher();
-        renderProfiles();
-        renderProducts();
-        renderApplicationForm();
-        renderAIAssistant();
-    }
-    
-    const renderStaticTexts = () => {
-        const T = TRANSLATIONS[state.currentLanguage];
-        document.getElementById('header-title').textContent = T.header_title;
-        document.getElementById('header-subtitle').textContent = T.header_subtitle;
-        document.getElementById('section-title-profile').textContent = T.section_title_profile;
-        document.getElementById('section-title-product').textContent = T.section_title_product;
-        document.getElementById('footer-text').textContent = T.footer_text;
-    }
-
-    const renderLanguageSwitcher = () => {
-        languageSwitcherContainer.innerHTML = Object.keys(TRANSLATIONS).map(lang => {
-            const isActive = state.currentLanguage === lang;
-            return `
-                <button 
-                    data-lang="${lang}" 
-                    class="lang-btn rounded-md transition-all duration-200 ${isActive ? 'ring-2 ring-blue-500' : 'opacity-60 hover:opacity-100'}"
-                    aria-label="Byt till ${lang}"
-                >
-                    <div class="w-8 h-6 overflow-hidden rounded-md shadow-sm">
-                        ${ICONS['flag_' + lang] || lang.toUpperCase()}
-                    </div>
-                </button>
-            `;
-        }).join('');
-
-        document.querySelectorAll('.lang-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const newLang = e.currentTarget.dataset.lang;
-                if (state.currentLanguage !== newLang) {
-                    state.currentLanguage = newLang;
-                    renderAll();
-                }
-            });
-        });
-    }
-
-    const renderAIAssistant = () => {
-        aiMessageEl.textContent = state.ai.message;
-        if (state.ai.isLoading) {
-            aiMessageEl.classList.add('hidden');
-            aiLoaderEl.classList.remove('hidden');
-            aiLoaderEl.classList.add('flex');
-        } else {
-            aiMessageEl.classList.remove('hidden');
-            aiLoaderEl.classList.add('hidden');
-            aiLoaderEl.classList.remove('flex');
-        }
-    }
-
-    const renderProfiles = () => {
-        const T = TRANSLATIONS[state.currentLanguage];
-        profileSelectorContainer.innerHTML = PROFILES.map(profile => `
-            <div
-              data-profile-name="${profile.name}"
-              class="profile-card flex flex-col items-center p-5 bg-white rounded-xl border transition-all duration-300 ease-in-out cursor-pointer w-full max-w-[220px] hover:shadow-xl hover:scale-105 hover:border-blue-300 ${state.selectedProfile?.name === profile.name ? 'border-blue-500 shadow-lg scale-105' : 'border-slate-200 shadow-md'}"
-              role="button" tabindex="0"
-            >
-              <img src="${profile.imageSrc}" alt="${profile.name}" class="w-32 h-32 object-contain mb-4" />
-              <div class="text-center">
-                  <p class="font-bold text-lg text-slate-800">${profile.name}</p>
-                  <p class="text-sm text-slate-500 mb-4">(${profile.type})</p>
-              </div>
-              <a href="${profile.readMoreUrl}" target="_blank" rel="noopener noreferrer" class="read-more-link mt-auto inline-block px-5 py-2 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold transition-colors duration-300 hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                ${T.read_more}
-              </a>
-            </div>
-        `).join('');
-
-        document.querySelectorAll('.profile-card').forEach(card => {
-            card.addEventListener('click', (e) => handleProfileSelect(e.currentTarget.dataset.profileName));
-            card.querySelector('.read-more-link').addEventListener('click', e => e.stopPropagation());
-        });
-    };
-
-    const renderProducts = () => {
-        const T = TRANSLATIONS[state.currentLanguage];
-        if (!state.selectedProfile) {
-            productCarouselContainer.innerHTML = `<div class="w-full text-center p-8 text-slate-500 bg-slate-100 rounded-lg">${T.profile_select_prompt}</div>`;
-            return;
-        }
-
-        const availableProducts = PRODUCTS.filter(p => p.availableFor.includes(state.selectedProfile.name));
-        
-        if (availableProducts.length === 0) {
-            productCarouselContainer.innerHTML = `<div class="w-full text-center p-8 text-slate-500 bg-slate-100 rounded-lg">${T.no_products_prompt} ${state.selectedProfile.name}.</div>`;
-            return;
-        }
-
-        productCarouselContainer.innerHTML = availableProducts.map(product => `
-            <div
-              data-product-name="${product.name}"
-              class="product-card relative flex flex-col items-center p-4 bg-white rounded-xl shadow-md cursor-pointer group transition-all duration-300 ease-in-out hover:shadow-lg hover:scale-105 border border-slate-200 hover:border-slate-300 w-full max-w-[200px]"
-              role="button" tabindex="0"
-            >
-              <img src="${product.imageSrc}" alt="${product.name}" class="w-28 h-28 object-contain mb-3" />
-              <p class="font-semibold text-center text-slate-700 text-sm">${product.name}</p>
-              <div class="absolute top-3 right-3 bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-700 shadow-lg">
-                ${ICONS.plus}
-              </div>
-            </div>
-        `).join('');
-
-        document.querySelectorAll('.product-card').forEach(card => {
-            card.addEventListener('click', () => handleAddProduct(card.dataset.productName));
-        });
-    };
-
-    const renderApplicationForm = () => {
-        const T = TRANSLATIONS[state.currentLanguage];
-        if (state.submissionStatus === 'success') {
-            applicationFormSection.innerHTML = `
-                <div class="text-center py-16 px-6 bg-teal-50 rounded-lg border-2 border-dashed border-teal-300 animate-fade-in">
-                    ${ICONS.check}
-                    <h3 class="mt-4 text-lg font-medium text-teal-800">${T.success_title}</h3>
-                    <p class="mt-1 text-sm text-teal-600">${T.success_subtitle}</p>
-                </div>`;
-            return;
-        }
-
-        if (state.submissionStatus === 'error') {
-            applicationFormSection.innerHTML = `
-                <div class="text-center py-16 px-6 bg-red-50 rounded-lg border-2 border-dashed border-red-300 animate-fade-in">
-                    ${ICONS.error}
-                    <h3 class="mt-4 text-lg font-medium text-red-800">${T.error_title}</h3>
-                    <p class="mt-1 text-sm text-red-600">${T.error_subtitle}</p>
-                    <button id="try-again-btn" class="mt-4 px-5 py-2 bg-blue-600 text-white rounded-full text-sm font-semibold transition-colors duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">${T.button_try_again}</button>
-                </div>`;
-            document.getElementById('try-again-btn').addEventListener('click', () => {
-                state.submissionStatus = 'idle';
-                renderApplicationForm();
-            });
-            return;
-        }
-
-        if (state.formEntries.length === 0) {
-            applicationFormSection.innerHTML = `
-                <div class="text-center py-16 px-6 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300">
-                  ${ICONS.document}
-                  <h3 class="mt-4 text-lg font-medium text-slate-700">${T.form_placeholder_title}</h3>
-                  <p class="mt-1 text-sm text-slate-500">${T.form_placeholder_subtitle}</p>
-                </div>`;
-            return;
-        }
-        
-        const entriesHTML = state.formEntries.map((entry, index) => renderProductEntry(entry, index)).join('');
-        
-        applicationFormSection.innerHTML = `
-            <div class="max-w-5xl mx-auto">
-              <div class="bg-white p-6 md:p-8 rounded-xl shadow-xl border border-slate-200">
-                <h3 class="text-2xl font-bold mb-8 text-center text-slate-800 tracking-tight">${T.section_title_spec}</h3>
-                <div id="product-entries-container" class="space-y-6 mb-10">${entriesHTML}</div>
-                <div id="summary-section"></div>
-                <div id="contact-form-container"></div>
-              </div>
-            </div>`;
-        
-        renderSummary();
-        renderContactForm();
-        
-        document.querySelectorAll('.product-entry-item').forEach(item => {
-            const entryId = parseInt(item.dataset.entryId);
-            item.querySelector('.remove-entry-btn').addEventListener('click', () => handleRemoveEntry(entryId));
-            item.querySelectorAll('input, select').forEach(input => {
-                input.addEventListener('input', (e) => {
-                    const { name, value, type } = e.target;
-                    const isNumeric = type === 'number';
-                    handleEntryChange(entryId, name, isNumeric ? (value === '' ? '' : Number(value)) : value);
-                });
-            });
-            item.querySelectorAll('.dim-preset-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    handleDimensionPresetSelect(entryId, e.currentTarget.dataset.size);
-                });
-            });
-        });
-
-        document.getElementById('main-contact-form').addEventListener('submit', handleSubmit);
-    };
-
-    const updateEntryDOM = (entry) => {
-        const T = TRANSLATIONS[state.currentLanguage];
-        const entryElement = document.querySelector(`.product-entry-item[data-entry-id="${entry.id}"]`);
-        if (!entryElement) return;
-
-        const priceText = typeof entry.price === 'number' && entry.price > 0 ? `${entry.price.toFixed(2)} ${T.currency}` : (entry.price === 0 ? T.price_enter_dims : T.price_custom_size);
-        const priceElement = entryElement.querySelector('.price-display');
-        priceElement.textContent = priceText;
-
-        if (typeof entry.price === 'number' && entry.price > 0) {
-            priceElement.classList.remove('bg-slate-200', 'text-slate-600');
-            priceElement.classList.add('price-tag', 'text-white');
-        } else {
-            priceElement.classList.remove('price-tag', 'text-white');
-            priceElement.classList.add('bg-slate-200', 'text-slate-600');
-        }
-    }
-    
-    const renderSummary = () => {
-        const T = TRANSLATIONS[state.currentLanguage];
-        const summaryContainer = document.getElementById('summary-section');
-        if(!summaryContainer) return;
-
-        summaryContainer.innerHTML = `
-            <div class="mt-10 text-right space-y-2 text-slate-700">
-                <div class="text-lg">${T.label_subtotal} <span class="font-semibold">${state.totals.subtotal.toFixed(2)} ${T.currency}</span></div>
-                <div class="text-lg text-red-600">${T.label_discount} <span class="font-semibold">-${state.totals.discount.toFixed(2)} ${T.currency}</span></div>
-                <hr class="my-2 border-slate-200">
-                <div class="text-2xl font-bold text-slate-900">${T.label_total} <span class="text-blue-600">${state.totals.final.toFixed(2)} ${T.currency}</span></div>
-            </div>
-        `;
-    }
-    
-    const renderProductEntry = (entry, index) => {
-        const T = TRANSLATIONS[state.currentLanguage];
-        const price = typeof entry.price === 'number' && entry.price > 0 ? `${entry.price.toFixed(2)} ${T.currency}` : (entry.price === 0 ? T.price_enter_dims : T.price_custom_size);
-        const priceColor = typeof entry.price === 'number' && entry.price > 0 ? 'text-white' : 'text-slate-600';
-        const priceBg = typeof entry.price === 'number' && entry.price > 0 ? 'price-tag' : 'bg-slate-200';
-        
-        const commonSizesButtons = (entry.product.commonSizes || []).map(size => 
-            `<button type="button" data-size="${size}" class="dim-preset-btn text-xs font-semibold px-3 py-1 bg-slate-200 text-slate-600 rounded-full hover:bg-blue-200 hover:text-blue-800 transition-colors">${size}</button>`
-        ).join('');
-
-        return `
-            <div class="product-entry-item bg-slate-50 border border-slate-200/80 p-5 rounded-lg relative shadow-sm transition-shadow hover:shadow-md" data-entry-id="${entry.id}">
-              <div class="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-x-6 gap-y-4">
-                <div class="flex items-start gap-4 row-span-1 md:row-span-3">
-                    <img src="${entry.product.imageSrc}" alt="${entry.product.name}" class="w-20 h-20 object-contain rounded-md bg-white border border-slate-200" />
-                    <div>
-                      <h4 class="font-bold text-lg text-slate-800">${T.section} ${index + 1}</h4>
-                      <p class="text-sm text-slate-500 font-medium">${entry.product.name}</p>
-                      <p class="text-xs text-slate-500">${T.profile}: ${entry.profile.name}</p>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-start">
-                    <div class="flex flex-col"><label class="text-sm font-medium text-slate-600 mb-1.5">${T.label_width}</label><input type="number" name="width" value="${entry.width}" required placeholder="t.ex. 1200" class="p-2.5 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" /></div>
-                    <div class="flex flex-col"><label class="text-sm font-medium text-slate-600 mb-1.5">${T.label_height}</label><input type="number" name="height" value="${entry.height}" required placeholder="t.ex. 1400" class="p-2.5 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" /></div>
-                    <div class="flex flex-col"><label class="text-sm font-medium text-slate-600 mb-1.5">${T.label_quantity}</label><input type="number" name="quantity" value="${entry.quantity}" required min="1" class="p-2.5 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" /></div>
-                    <div class="flex flex-col"><label class="text-sm font-medium text-slate-600 mb-1.5">${T.label_glass_type}</label><select name="glassType" class="styled-select p-2.5 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"><option value="2-glas" ${entry.glassType === '2-glas' ? 'selected' : ''}>${T.option_glass_2}</option><option value="3-glas" ${entry.glassType === '3-glas' ? 'selected' : ''}>${T.option_glass_3}</option></select></div>
-                    <div class="flex flex-col"><label class="text-sm font-medium text-slate-600 mb-1.5">${T.label_ventilation_type}</label><select name="ventilationType" class="styled-select p-2.5 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"><option value="utan_ventilation" ${entry.ventilationType === 'utan_ventilation' ? 'selected' : ''}>${T.option_vent_no}</option><option value="med_ventilation" ${entry.ventilationType === 'med_ventilation' ? 'selected' : ''}>${T.option_vent_yes}</option></select></div>
-                </div>
-                <div class="md:col-start-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  <div class="sm:col-span-2 flex flex-wrap gap-2 items-center">
-                    <span class="text-xs text-slate-500 font-medium mr-2">${T.label_common_sizes}</span>
-                    ${commonSizesButtons}
-                  </div>
-                  <div class="col-span-1 sm:col-span-3 mt-2 md:text-right">
-                      <span class="price-display inline-block px-4 py-2 rounded-lg font-bold transition-all duration-300 ${priceColor} ${priceBg}">${price}</span>
-                  </div>
-                </div>
-              </div>
-              <button class="remove-entry-btn absolute top-3 right-3 w-8 h-8 bg-slate-200/50 text-slate-500 rounded-full flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors" aria-label="Ta bort sektion ${index + 1}">
-                ${ICONS.trash}
-              </button>
-            </div>
-        `;
-    };
-    
-    const renderContactForm = () => {
-        const T = TRANSLATIONS[state.currentLanguage];
-        const container = document.getElementById('contact-form-container');
-        if (!container) return;
-        
-        container.innerHTML = `
-            <form id="main-contact-form" class="mt-10 pt-10 border-t border-slate-200">
-              <h3 class="text-2xl font-bold mb-8 text-center text-slate-800 tracking-tight">${T.section_title_contact}</h3>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mb-6">
-                <div class="flex flex-col"><label for="firstName" class="mb-1.5 font-medium text-slate-700">${T.label_first_name}</label><input type="text" id="firstName" name="firstName" required class="p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full transition shadow-sm" /></div>
-                <div class="flex flex-col"><label for="lastName" class="mb-1.5 font-medium text-slate-700">${T.label_last_name}</label><input type="text" id="lastName" name="lastName" required class="p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full transition shadow-sm" /></div>
-                <div class="flex flex-col"><label for="email" class="mb-1.5 font-medium text-slate-700">${T.label_email}</label><input type="email" id="email" name="email" required class="p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full transition shadow-sm" /></div>
-                <div class="flex flex-col"><label for="phone" class="mb-1.5 font-medium text-slate-700">${T.label_phone}</label><input type="tel" id="phone" name="phone" required class="p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full transition shadow-sm" /></div>
-                <div class="md:col-span-2"><div class="flex flex-col"><label for="address" class="mb-1.5 font-medium text-slate-700">${T.label_address}</label><input type="text" id="address" name="address" required class="p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full transition shadow-sm" /></div></div>
-                <div class="md:col-span-2"><div class="flex flex-col"><label for="message" class="mb-1.5 font-medium text-slate-700">${T.label_message}</label><textarea id="message" name="message" rows="4" class="p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full transition shadow-sm"></textarea></div></div>
-              </div>
-              <button id="submit-btn" type="submit" class="w-full bg-blue-600 text-white font-bold py-4 px-6 rounded-lg hover:bg-blue-700 transition-all duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center text-lg shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-300">
-                ${ICONS.send} <span id="submit-btn-text">${T.button_submit}</span>
-              </button>
-            </form>
-        `;
-        document.getElementById('main-contact-form').addEventListener('submit', handleSubmit);
-    };
-
-    // --- EVENT HANDLERS & LOGIC ---
-    const handleProfileSelect = (profileName) => {
-        state.selectedProfile = PROFILES.find(p => p.name === profileName);
-        state.formEntries = [];
-        calculateTotals();
-        renderProfiles();
-        renderProducts();
-        renderApplicationForm();
-        getAITip('profile_selected', state.selectedProfile);
-    };
-
-    const handleAddProduct = (productName) => {
-        const product = PRODUCTS.find(p => p.name === productName);
-        const newEntry = {
-            id: Date.now(),
-            profile: state.selectedProfile,
-            product,
-            width: '', height: '', quantity: 1,
-            glassType: '2-glas', ventilationType: 'utan_ventilation',
-            price: 0,
-        };
-        state.formEntries.push(newEntry);
-        renderApplicationForm();
-        getAITip('product_added', { count: state.formEntries.length });
-    };
-
-    const handleRemoveEntry = (id) => {
-        state.formEntries = state.formEntries.filter(entry => entry.id !== id);
-        calculateTotals();
-        renderApplicationForm();
-    };
-
-    const handleEntryChange = (id, field, value) => {
-        const entry = state.formEntries.find(e => e.id === id);
-        if (entry) {
-            entry[field] = value;
-            entry.price = calculateEntryPrice(entry);
-            calculateTotals();
-            // --- FOCUS FIX: ONLY UPDATE DOM, DON'T RE-RENDER ---
-            updateEntryDOM(entry);
-            renderSummary();
-        }
-    };
-    
-    const handleDimensionPresetSelect = (entryId, sizeString) => {
-        const entry = state.formEntries.find(e => e.id === entryId);
-        if (entry) {
-            const [width, height] = sizeString.split('x').map(Number);
-            entry.width = width;
-            entry.height = height;
-
-            // --- FOCUS FIX: Update inputs and then do targeted DOM update ---
-            const entryElement = document.querySelector(`.product-entry-item[data-entry-id="${entry.id}"]`);
-            entryElement.querySelector('input[name="width"]').value = width;
-            entryElement.querySelector('input[name="height"]').value = height;
+        :root {
+            --hf-gold: #C5A059;
+            --hf-gold-dim: rgba(197, 160, 89, 0.15);
             
-            entry.price = calculateEntryPrice(entry);
-            calculateTotals();
-            updateEntryDOM(entry);
-            renderSummary();
-        }
-    };
-
-    const calculateEntryPrice = (entry) => {
-        if (!entry.width || !entry.height || !entry.quantity) {
-            return 0;
-        }
-
-        const rules = PRICING_RULES[entry.product.name] || PRICING_RULES.default;
-        const sqM = (entry.width / 1000) * (entry.height / 1000);
-        
-        if (sqM < rules.minSqM || sqM > rules.maxSqM) {
-            return 'Anpassat mått';
-        }
-
-        const sizeRange = rules.maxSqM - rules.minSqM;
-        const priceRange = rules.maxPrice - rules.minPrice;
-        const sizeProgress = sizeRange === 0 ? 1 : (sqM - rules.minSqM) / sizeRange;
-        let price = rules.minPrice + (sizeProgress * priceRange);
-
-        price *= rules.profileMultipliers[entry.profile.name] || 1;
-        if (entry.glassType === '3-glas') price += rules.options['3-glas'] || 0;
-        if (entry.ventilationType === 'med_ventilation') price += rules.options['med_ventilation'] || 0;
-        
-        return price * entry.quantity;
-    };
-    
-    const calculateTotals = () => {
-        let subtotal = 0;
-        let totalQuantity = 0;
-        
-        state.formEntries.forEach(entry => {
-            if (typeof entry.price === 'number') {
-                subtotal += entry.price;
-            }
-            totalQuantity += Number(entry.quantity) || 0;
-        });
-
-        state.totals.subtotal = subtotal;
-        
-        const discountThreshold = state.currentLanguage === 'sv' ? 15000 : 3000;
-        let discount = 0;
-        if (subtotal > discountThreshold) {
-            discount = subtotal * 0.05;
+            /* Default Dark Theme */
+            --bg-main: #121212;
+            --bg-card: #070707;
+            --bg-sidebar: #000000;
+            --text-main: #ffffff;
+            --text-muted: #6b7280;
+            --border-color: #1f1f1f;
+            --input-bg: rgba(255,255,255,0.02);
+            --bg-subtle: rgba(255, 255, 255, 0.05);
+            --glass-bg: rgba(7, 7, 7, 0.95);
+            
+            /* UI Scaling Variables */
+            --ui-scale: 1;
+            --base-padding: calc(1rem * var(--ui-scale));
+            --base-font-size: calc(1rem * var(--ui-scale));
         }
         
-        state.totals.discount = discount;
-        state.totals.final = subtotal - discount;
+        /* Light Theme Overrides */
+        html[data-theme="light"] {
+            --bg-main: #f5f5f5;
+            --bg-card: #ffffff;
+            --bg-sidebar: #ffffff;
+            --text-main: #121212;
+            --text-muted: #4b5563;
+            --border-color: #e5e7eb;
+            --input-bg: rgba(0,0,0,0.02);
+            --bg-subtle: rgba(0, 0, 0, 0.05);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+        }
         
-        getAITip('price_updated', { total: state.totals.subtotal });
-    };
+        /* Scale classes */
+        html[data-scale="S"] { --ui-scale: 0.75; }
+        html[data-scale="M"] { --ui-scale: 1; }
+        html[data-scale="L"] { --ui-scale: 1.5; }
 
-    const buildEmailContent = () => {
-        const T = TRANSLATIONS[state.currentLanguage];
-        const contactForm = document.getElementById('main-contact-form');
-        const formData = new FormData(contactForm);
-
-        const productRows = state.formEntries.map((entry, index) => {
-            const price = typeof entry.price === 'number' ? `${entry.price.toFixed(2)} ${T.currency}` : entry.price;
-            return `
-                <tr style="border-bottom: 1px solid #e2e8f0; ${index % 2 === 0 ? 'background-color: #f8fafc;' : ''}">
-                    <td style="padding: 12px; text-align: center;">${index + 1}</td>
-                    <td style="padding: 12px;"><img src="${entry.product.imageSrc}" alt="${entry.product.name}" style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px;"></td>
-                    <td style="padding: 12px;">
-                        <strong style="color: #1e293b;">${entry.product.name}</strong><br>
-                        <span style="font-size: 12px; color: #64748b;">${T.profile}: ${entry.profile.name}</span>
-                    </td>
-                    <td style="padding: 12px;">${entry.width} mm x ${entry.height} mm</td>
-                    <td style="padding: 12px; text-align: center;">${entry.quantity}</td>
-                    <td style="padding: 12px;">${entry.glassType === '3-glas' ? T.option_glass_3 : T.option_glass_2}</td>
-                    <td style="padding: 12px;">${entry.ventilationType === 'med_ventilation' ? T.option_vent_yes : T.option_vent_no}</td>
-                    <td style="padding: 12px; text-align: right; font-weight: 600;">${price}</td>
-                </tr>
-            `;
-        }).join('');
-
-        const summaryRows = `
-            <tr style="border-top: 2px solid #cbd5e1;">
-                <td colspan="7" style="padding: 10px; text-align: right;">${T.label_subtotal}</td>
-                <td style="padding: 10px; text-align: right; font-weight: 600;">${state.totals.subtotal.toFixed(2)} ${T.currency}</td>
-            </tr>
-            <tr>
-                <td colspan="7" style="padding: 10px; text-align: right; color: #dc2626;">${T.label_discount}</td>
-                <td style="padding: 10px; text-align: right; font-weight: 600; color: #dc2626;">-${state.totals.discount.toFixed(2)} ${T.currency}</td>
-            </tr>
-            <tr style="background-color: #f1f5f9; font-size: 1.1em;">
-                <td colspan="7" style="padding: 12px; text-align: right; font-weight: 700;">${T.label_total}</td>
-                <td style="padding: 12px; text-align: right; font-weight: 700; color: #2563eb;">${state.totals.final.toFixed(2)} ${T.currency}</td>
-            </tr>
-        `;
-
-        return `
-            <div style="font-family: 'Poppins', sans-serif; color: #334155; max-width: 800px; margin: auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-                <div style="background-color: #1e293b; color: white; padding: 20px;">
-                    <h1 style="margin: 0; font-size: 24px;">${T.email_title}</h1>
-                </div>
-                <div style="padding: 20px;">
-                    <h2 style="font-size: 18px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 20px;">${T.email_section_products}</h2>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                        <thead style="background-color: #f1f5f9; text-align: left;">
-                            <tr>
-                                <th style="padding: 12px; text-align: center;">${T.email_header_index}</th>
-                                <th style="padding: 12px;"></th>
-                                <th style="padding: 12px;">${T.email_header_product}</th>
-                                <th style="padding: 12px;">${T.email_header_dims}</th>
-                                <th style="padding: 12px; text-align: center;">${T.email_header_quantity}</th>
-                                <th style="padding: 12px;">${T.email_header_glass}</th>
-                                <th style="padding: 12px;">${T.email_header_vent}</th>
-                                <th style="padding: 12px; text-align: right;">${T.email_header_price}</th>
-                            </tr>
-                        </thead>
-                        <tbody>${productRows}</tbody>
-                        <tfoot>${summaryRows}</tfoot>
-                    </table>
-                    <h2 style="font-size: 18px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-top: 30px; margin-bottom: 20px;">${T.email_section_customer}</h2>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px 20px; font-size: 14px;">
-                        <div><strong>${T.email_label_name}:</strong><br>${formData.get('firstName')} ${formData.get('lastName')}</div>
-                        <div><strong>${T.email_label_email}:</strong><br><a href="mailto:${formData.get('email')}" style="color: #2563eb;">${formData.get('email')}</a></div>
-                        <div><strong>${T.email_label_phone}:</strong><br>${formData.get('phone')}</div>
-                        <div><strong>${T.email_label_address}:</strong><br>${formData.get('address')}</div>
-                    </div>
-                    <div style="margin-top: 20px; font-size: 14px;">
-                        <strong>${T.email_label_message}:</strong><br>
-                        <p style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; margin-top: 5px; white-space: pre-wrap;">${formData.get('message') || T.email_no_message}</p>
-                    </div>
-                </div>
-                <div style="background-color: #f8fafc; color: #64748b; padding: 15px; text-align: center; font-size: 12px; border-top: 1px solid #e2e8f0;">
-                    ${T.email_footer}
-                </div>
-            </div>
-        `;
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (state.submissionStatus === 'sending') return;
-        const T = TRANSLATIONS[state.currentLanguage];
-
-        const submitBtn = document.getElementById('submit-btn');
-        const submitBtnText = document.getElementById('submit-btn-text');
-        state.submissionStatus = 'sending';
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `${ICONS.spinner} <span>${T.button_sending}</span>`;
-
-        const contactForm = document.getElementById('main-contact-form');
-        const formData = new FormData(contactForm);
-        const formObject = Object.fromEntries(formData.entries());
-
-        const emailContent = buildEmailContent();
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+            font-size: calc(1rem * var(--ui-scale));
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+            width: 100%;
+        }
+        .font-montserrat { font-family: 'Montserrat', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
         
-        const emailParams = {
-            to_email: "info@housefactors.se",
-            from_name: `${formObject.firstName} ${formObject.lastName}`,
-            reply_to: formObject.email,
-            selected_products: emailContent
-        };
-        
-        emailjs.send("service_3p2lhzg", "template_2822udm", emailParams)
-            .then(function(response) {
-                console.log('SUCCESS!', response.status, response.text);
-                state.submissionStatus = 'success';
-                state.formEntries = [];
-                state.selectedProfile = null;
-                calculateTotals();
-                renderAll();
-            }, function(error) {
-                console.log('FAILED...', error);
-                state.submissionStatus = 'error';
-                renderApplicationForm();
-            });
-    };
+        /* Premium Button */
+        .btn-gold {
+            background-color: var(--hf-gold);
+            color: #000;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            border: 1px solid var(--hf-gold);
+            padding: calc(1rem * var(--ui-scale)) calc(2rem * var(--ui-scale));
+        }
+        .btn-gold:hover {
+            background-color: transparent;
+            color: var(--hf-gold);
+            box-shadow: 0 0 30px var(--hf-gold-dim);
+        }
 
-    // --- INITIAL RENDER ---
-    document.addEventListener('DOMContentLoaded', () => {
-        initializeAI();
-        renderAll();
-    });
+        /* Refined Tech Card */
+        .tech-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            position: relative;
+            transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+            padding: calc(1.5rem * var(--ui-scale));
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .tech-card:hover {
+            border-color: var(--hf-gold);
+            background: var(--bg-card);
+            opacity: 0.95;
+        }
+        .tech-card.selected {
+            border-color: var(--hf-gold);
+            background: var(--bg-card);
+            transform: scale(1.005);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1), 0 0 25px var(--hf-gold-dim);
+        }
+        html[data-theme="dark"] .tech-card.selected {
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 25px var(--hf-gold-dim);
+        }
 
+        /* Spec Boxes */
+        .spec-item {
+            background: rgba(128,128,128,0.05);
+            border: 1px solid var(--border-color);
+            padding: calc(0.5rem * var(--ui-scale)) calc(1rem * var(--ui-scale));
+            border-radius: 4px;
+        }
+        .selected .spec-item {
+            border-color: var(--hf-gold-dim);
+            background: rgba(197, 160, 89, 0.05);
+        }
+
+        /* Sidebar Icons */
+        .side-nav-icon {
+            width: 60px; height: 60px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); transition: all 0.4s;
+            cursor: pointer;
+        }
+        .side-nav-icon.active {
+            color: var(--hf-gold);
+        }
+
+        /* Modern Inputs */
+        .tech-input {
+            background: var(--input-bg);
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            padding: calc(0.75rem * var(--ui-scale));
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .tech-input:focus {
+            outline: none;
+            border-bottom-color: var(--hf-gold);
+            background: rgba(128,128,128,0.05);
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+        }
+
+        option {
+            background: var(--bg-card);
+            color: var(--text-main);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .reveal { animation: fadeInUp 0.5s ease-out forwards; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg-sidebar); }
+        ::-webkit-scrollbar-thumb { background: var(--hf-gold); border-radius: 10px; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.40.0"
+  }
+}
 </script>
-
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="selection:bg-[#C5A059] selection:text-black">
+    <div id="root"></div>
+    <script type="module" src="index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
