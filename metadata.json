@@ -1,5 +1,5 @@
 {
-  "name": "Offertförfrågan NEW",
-  "description": "En interaktiv webbapplikation för att välja fönster- och dörrprofiler, specificera produkter och dimensioner, och skicka en offertförfrågan. Appen är byggd med den senaste tekniken för en smidig användarupplevelse.",
+  "name": "Zapytanie Ofertowe Okna",
+  "description": "Interaktywna aplikacja do konfiguracji profili okiennych i drzwiowych oraz składania zapytań ofertowych.",
   "requestFramePermissions": []
 }

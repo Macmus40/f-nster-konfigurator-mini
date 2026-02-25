@@ -22,8 +22,23 @@ declare global {
         toggleTheme: () => void;
         showInfo: (n: string, e: Event) => void;
         closeInfo: () => void;
+        toggleAdmin: () => void;
+        toggleProductInProfile: (profileName: string, productName: string) => void;
+        toggleProfileStatus: (profileName: string) => void;
+        toggleAccessory: (accId: string) => void;
+        addProfileInAdmin: (e: Event) => void;
+        addProductInAdmin: (e: Event) => void;
+        addAccessoryInAdmin: (e: Event) => void;
     }
 }
+
+const ACCESSORIES = [
+    { id: 'vent_standard', name: 'Nawiewnik Standard', category: 'Ventilation' },
+    { id: 'handle_gold', name: 'Klamka Złota', category: 'Handles' },
+    { id: 'handle_silver', name: 'Klamka Srebrna', category: 'Handles' },
+    { id: 'color_anthracite', name: 'Antracyt', category: 'Colors' },
+    { id: 'color_oak', name: 'Złoty Dąb', category: 'Colors' },
+];
 
 // --- DATA ---
 const PROFILES = [
@@ -86,20 +101,20 @@ const PROFILES = [
 ];
 
 const PRODUCTS = [
-    { name: '1-luft-F', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/1-LUFT-F-m6tj689t.gif' },
-    { name: '1-luft-K', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/animated-k-m7vm8hg4.gif' },
-    { name: '1-luft-DH', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/1-LUFT-DH-m6tj64n6.gif' },
-    { name: '1-luft-DKH', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/1-LUFT-DKH-m6tj671w.gif' },
-    { name: 'Top Swing', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/animated-top-swing-m7vmqp7d.gif' },
-    { name: '2-LUFT DKV/DKH', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/2-LUFT-DKV_DKH-m6tj6c89.gif' },
-    { name: '3-LUFT DKV/F/DKH', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/3-LUFT-DKV_F_DKH-m6tj6e2o.gif' },
-    { name: 'Dörr-1-LUFT DH-utat', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/dorr-1-LUFT-DHutat-m6tj6fyl.gif' },
-    { name: 'Dörr-1-LUFT DKH-inat', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/dorr-1-LUFT-DKHinat-m6tj6i0z.gif' },
-    { name: 'Dörr-2-LUFT utat', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/dorr2-LUFT-DVA_DHutat-m6tj6oym.gif' },
-    { name: 'Dörr-2-LUFT inat', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/dorr-2-LUFT-DV_DKHinat-m6tj6ltx.gif' },
-    { name: 'Skjutdörr-2-LUFT', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/skjutdorr2-LUFT-SKH_FF-m6tj793g.gif' },
-    { name: 'Skjutdörr-HS-2-LUFT', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/skjutdorr-HS-2-LUFT-HSH_FF-m6tj6y12.gif' },
-    { name: 'Skjutdörr-HS-4-LUFT', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/skjutdorr-HS-4-LUFT-FF_HSVA_HSH_FF-m6tj73ym.gif' },
+    { name: '1-luft-F', category: 'Okna', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/1-LUFT-F-m6tj689t.gif' },
+    { name: '1-luft-K', category: 'Okna', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/animated-k-m7vm8hg4.gif' },
+    { name: '1-luft-DH', category: 'Okna', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/1-LUFT-DH-m6tj64n6.gif' },
+    { name: '1-luft-DKH', category: 'Okna', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/1-LUFT-DKH-m6tj671w.gif' },
+    { name: 'Top Swing', category: 'Okna', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/animated-top-swing-m7vmqp7d.gif' },
+    { name: '2-LUFT DKV/DKH', category: 'Okna', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/2-LUFT-DKV_DKH-m6tj6c89.gif' },
+    { name: '3-LUFT DKV/F/DKH', category: 'Okna', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/3-LUFT-DKV_F_DKH-m6tj6e2o.gif' },
+    { name: 'Dörr-1-LUFT DH-utat', category: 'Drzwi', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/dorr-1-LUFT-DHutat-m6tj6fyl.gif' },
+    { name: 'Dörr-1-LUFT DKH-inat', category: 'Drzwi', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/dorr-1-LUFT-DKHinat-m6tj6i0z.gif' },
+    { name: 'Dörr-2-LUFT utat', category: 'Drzwi', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/dorr2-LUFT-DVA_DHutat-m6tj6oym.gif' },
+    { name: 'Dörr-2-LUFT inat', category: 'Drzwi', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/dorr-2-LUFT-DV_DKHinat-m6tj6ltx.gif' },
+    { name: 'Skjutdörr-2-LUFT', category: 'Suwanki', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/skjutdorr2-LUFT-SKH_FF-m6tj793g.gif' },
+    { name: 'Skjutdörr-HS-2-LUFT', category: 'Suwanki', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/skjutdorr-HS-2-LUFT-HSH_FF-m6tj6y12.gif' },
+    { name: 'Skjutdörr-HS-4-LUFT', category: 'Suwanki', imageSrc: 'https://www.fonsterfaktor.se/lib/uid2kb/skjutdorr-HS-4-LUFT-FF_HSVA_HSH_FF-m6tj73ym.gif' },
 ];
 
 const TRANSLATIONS: any = {
@@ -115,8 +130,10 @@ const TRANSLATIONS: any = {
         success: 'Förfrågan har skickats!', error: 'Ett fel uppstod vid sändning.', sending: 'SÄNDER...',
         vent_none: 'UTAN', vent_with: 'MED', profile_label: 'PROFIL', select_first: 'Vänligen välj en profil först!',
         nav_config: 'Konfiguration', nav_tech: 'Teknisk Analys',
-        ui_scale: 'UI SKALA', btn_confirm: 'LÄGG TILL I PROJEKTLISTA', btn_change: 'ÄNDRA', step_done: 'VALD',
-        last_used: 'SENAST VALD'
+        btn_confirm: 'LÄGG TILL I PROJEKTLISTA', btn_change: 'ÄNDRA', step_done: 'VALD',
+        last_used: 'SENAST VALD',
+        cat_okna: 'Fönster', cat_drzwi: 'Dörrar', cat_suwanki: 'Skjutdörrar',
+        colorOut: 'FÄRG UTSIDA', colorIn: 'FÄRG INSIDA'
     },
     pl: {
         header: 'ZAPYTANIE OFERTOWE',
@@ -130,8 +147,15 @@ const TRANSLATIONS: any = {
         success: 'Zapytanie zostało wysłane!', error: 'Wystąpił błąd podczas wysyłania.', sending: 'WYSYŁANIE...',
         vent_none: 'BEZ', vent_with: 'Z VENT', profile_label: 'PROFIL', select_first: 'Proszę najpierw wybrać profil!',
         nav_config: 'Konfiguracja', nav_tech: 'Analiza Techniczna',
-        ui_scale: 'ROZMIAR INTERFEJSU', btn_confirm: 'DODAJ DO LISTY PROJEKTU', btn_change: 'ZMIEŃ', step_done: 'WYBRANO',
-        last_used: 'OSTATNIO WYBRANY'
+        btn_confirm: 'DODAJ DO LISTY PROJEKTU', btn_change: 'ZMIEŃ', step_done: 'WYBRANO',
+        last_used: 'OSTATNIO WYBRANY',
+        admin_title: 'ADMIN: PRZYPISANIE PRODUKTÓW', admin_desc: 'Wybierz, które produkty są dostępne dla każdego profilu.',
+        admin_profiles: 'ZARZĄDZANIE PROFILAMI', admin_acc: 'ZARZĄDZANIE DODATKAMI',
+        admin_status: 'STATUS', admin_active: 'AKTYWNY', admin_disabled: 'WYŁĄCZONY',
+        cat_okna: 'Okna', cat_drzwi: 'Drzwi', cat_suwanki: 'Suwanki',
+        colorOut: 'KOLOR ZEWNĄTRZ', colorIn: 'KOLOR WEWNĄTRZ',
+        admin_add_profile: 'DODAJ PROFIL', admin_add_product: 'DODAJ PRODUKT', admin_add_acc: 'DODAJ DODATEK',
+        admin_name: 'NAZWA', admin_type: 'TYP', admin_image: 'URL OBRAZU', admin_desc_field: 'OPIS'
     },
     en: {
         header: 'QUOTE REQUEST',
@@ -145,8 +169,15 @@ const TRANSLATIONS: any = {
         success: 'Inquiry has been sent!', error: 'An error occurred while sending.', sending: 'SENDING...',
         vent_none: 'WITHOUT', vent_with: 'WITH', profile_label: 'PROFILE', select_first: 'Please select a profile first!',
         nav_config: 'Configuration', nav_tech: 'Technical Analysis',
-        ui_scale: 'UI SCALE', btn_confirm: 'ADD TO PROJECT LIST', btn_change: 'CHANGE', step_done: 'SELECTED',
-        last_used: 'LAST SELECTED'
+        btn_confirm: 'ADD TO PROJECT LIST', btn_change: 'CHANGE', step_done: 'SELECTED',
+        last_used: 'LAST SELECTED',
+        admin_title: 'ADMIN: PRODUCT ASSIGNMENT', admin_desc: 'Select which products are available for each profile.',
+        admin_profiles: 'PROFILE MANAGEMENT', admin_acc: 'ACCESSORIES MANAGEMENT',
+        admin_status: 'STATUS', admin_active: 'ACTIVE', admin_disabled: 'DISABLED',
+        cat_okna: 'Windows', cat_drzwi: 'Doors', cat_suwanki: 'Sliding Doors',
+        colorOut: 'COLOR OUTSIDE', colorIn: 'COLOR INSIDE',
+        admin_add_profile: 'ADD PROFILE', admin_add_product: 'ADD PRODUCT', admin_add_acc: 'ADD ACCESSORY',
+        admin_name: 'NAME', admin_type: 'TYPE', admin_image: 'IMAGE URL', admin_desc_field: 'DESCRIPTION'
     }
 };
 
@@ -160,23 +191,63 @@ const ICONS = {
     flag_sv: `<svg viewBox="0 0 5 3"><rect width="5" height="3" fill="#006aa7"/><path d="M0 1h5M1.5 0v3" stroke="#fecc00" stroke-width="1"/></svg>`,
     flag_pl: `<svg viewBox="0 0 5 3"><rect width="5" height="3" fill="#fff"/><rect width="5" height="1.5" y="1.5" fill="#dc143c"/></svg>`,
     flag_en: `<svg viewBox="0 0 60 30"><clipPath id="s"><path d="M0,0 v30 h60 v-30 z"/></clipPath><path d="M0,0 v30 h60 v-30 z" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6" clip-path="url(#s)"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" stroke-width="4" clip-path="url(#s)"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/></svg>`,
+    key: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3m-3-3l-2.5-2.5"></path></svg>`,
 };
 
 // --- STATE ---
 let state: any = {
     currentLanguage: 'sv',
-    uiScale: 'M',
     theme: 'dark',
     selectedProfile: null,
     selectedProduct: null,
     lastSelectedProfileName: null,
     pendingEntry: null,
     infoProfile: null,
+    isAdminOpen: false,
+    profiles: [], // Initialized in DOMContentLoaded
+    products: [], // Initialized in DOMContentLoaded
+    accessories: [], // Initialized in DOMContentLoaded
+    profileProductMap: {}, // Initialized in DOMContentLoaded
+    disabledProfiles: [],
+    enabledAccessories: [], // IDs of accessories currently active in the system
     formEntries: [],
     submissionStatus: 'idle',
     aiMessage: "",
     aiIsLoading: false,
 };
+
+const STORAGE_KEY = 'offert_app_data_v1';
+
+function saveStateToLocalStorage() {
+    const data = {
+        profiles: state.profiles,
+        products: state.products,
+        accessories: state.accessories,
+        profileProductMap: state.profileProductMap,
+        disabledProfiles: state.disabledProfiles,
+        enabledAccessories: state.enabledAccessories
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadStateFromLocalStorage() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            if (parsed.profiles) state.profiles = parsed.profiles;
+            if (parsed.products) state.products = parsed.products;
+            if (parsed.accessories) state.accessories = parsed.accessories;
+            if (parsed.profileProductMap) state.profileProductMap = parsed.profileProductMap;
+            if (parsed.disabledProfiles) state.disabledProfiles = parsed.disabledProfiles;
+            if (parsed.enabledAccessories) state.enabledAccessories = parsed.enabledAccessories;
+            return true;
+        } catch (e) {
+            console.error("Error loading saved state", e);
+        }
+    }
+    return false;
+}
 
 // --- AI ---
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -238,18 +309,6 @@ const renderApp = () => {
                     ${state.theme === 'dark' ? ICONS.sun : ICONS.moon}
                 </button>
 
-                <!-- UI Scale Controls -->
-                <div class="hidden sm:flex lg:flex-col items-center gap-2 lg:gap-3">
-                    <span class="text-[7px] font-black text-gray-600 uppercase tracking-[0.2em] hidden lg:block">${T.ui_scale}</span>
-                    <div class="flex lg:flex-col gap-1.5">
-                        ${['S', 'M', 'L'].map(s => `
-                            <button onclick="setUIScale('${s}')" class="w-6 h-6 lg:w-7 lg:h-7 flex items-center justify-center text-[8px] lg:text-[9px] font-black border transition-all ${state.uiScale === s ? 'bg-[#C5A059] text-black border-[#C5A059]' : 'text-gray-500 border-white/5 hover:border-white/20'}">
-                                ${s}
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
-
                 <!-- Language Selector -->
                 <div class="flex lg:flex-col gap-3 lg:gap-4">
                     ${['sv', 'pl', 'en'].map(lang => `
@@ -261,6 +320,11 @@ const renderApp = () => {
                         </button>
                     `).join('')}
                 </div>
+
+                <!-- Hidden Admin Access -->
+                <button onclick="toggleAdmin()" class="opacity-10 hover:opacity-100 transition-opacity p-2 text-[var(--text-muted)] hover:text-[#C5A059]">
+                    ${ICONS.key}
+                </button>
             </div>
         </div>
 
@@ -293,7 +357,8 @@ const renderApp = () => {
                             ` : ''}
                         </div>
                         <div class="space-y-6">
-                            ${PROFILES.filter(p => !state.selectedProfile || state.selectedProfile.name === p.name).map(p => {
+                            ${state.profiles.filter((p: any) => !state.disabledProfiles.includes(p.name))
+                                .filter((p: any) => !state.selectedProfile || state.selectedProfile.name === p.name).map((p: any) => {
                                 const isSelected = state.selectedProfile?.name === p.name;
                                 const isLastUsed = state.lastSelectedProfileName === p.name && !state.selectedProfile;
                                 return `
@@ -346,26 +411,44 @@ const renderApp = () => {
                                 </button>
                             ` : ''}
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-                            ${PRODUCTS.filter(p => !state.selectedProduct || state.selectedProduct.name === p.name).map(p => `
-                                <div onclick="${!state.selectedProduct ? `addProduct('${p.name}')` : ''}" class="tech-card ${!state.selectedProduct ? 'cursor-pointer' : ''} group text-center flex flex-col justify-between h-80 border-dashed border-[var(--border-color)] ${state.selectedProduct?.name === p.name ? 'border-[#C5A059] bg-[#C5A059]/5' : 'hover:border-[var(--hf-gold)]'}">
-                                    <div class="h-48 flex items-center justify-center mb-6 bg-[var(--bg-subtle)] rounded-xl p-4">
-                                        <img src="${p.imageSrc}" class="max-h-full ${state.selectedProduct?.name === p.name ? '' : 'grayscale group-hover:grayscale-0'} transition-all duration-500 scale-90 group-hover:scale-110 object-contain">
+                        
+                        <div class="space-y-16">
+                            ${['Okna', 'Drzwi', 'Suwanki'].map(cat => {
+                                const filteredProducts = state.products.filter((p: any) => p.category === cat).filter((p: any) => {
+                                    const isSelected = state.selectedProduct?.name === p.name;
+                                    const isAllowed = state.profileProductMap[state.selectedProfile.name]?.includes(p.name);
+                                    return isSelected || isAllowed;
+                                });
+                                
+                                if (filteredProducts.length === 0) return '';
+                                
+                                return `
+                                    <div class="reveal">
+                                        <h3 class="text-xs font-black text-[#C5A059] tracking-[0.3em] uppercase mb-8 border-l-2 border-[#C5A059] pl-4">${T['cat_' + cat.toLowerCase()]}</h3>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                                            ${filteredProducts.map(p => `
+                                                <div onclick="${!state.selectedProduct ? `addProduct('${p.name}')` : ''}" class="tech-card ${!state.selectedProduct ? 'cursor-pointer' : ''} group text-center flex flex-col justify-between h-80 border-dashed border-[var(--border-color)] ${state.selectedProduct?.name === p.name ? 'border-[#C5A059] bg-[#C5A059]/5' : 'hover:border-[var(--hf-gold)]'}">
+                                                    <div class="h-48 flex items-center justify-center mb-6 bg-[var(--bg-subtle)] rounded-xl p-4">
+                                                        <img src="${p.imageSrc}" class="max-h-full ${state.selectedProduct?.name === p.name ? '' : 'grayscale group-hover:grayscale-0'} transition-all duration-500 scale-90 group-hover:scale-110 object-contain">
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-[10px] font-black uppercase tracking-widest ${state.selectedProduct?.name === p.name ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'} mb-4 group-hover:text-[var(--text-main)]">${p.name}</p>
+                                                        ${!state.selectedProduct ? `
+                                                            <div class="bg-[var(--bg-subtle)] text-[#C5A059] py-4 text-[9px] font-black uppercase tracking-[0.2em] group-hover:bg-[#C5A059] group-hover:text-black transition-all rounded-lg">
+                                                                ${T.btn_add}
+                                                            </div>
+                                                        ` : `
+                                                            <div class="bg-[#C5A059] text-black py-4 text-[9px] font-black uppercase tracking-[0.2em] rounded-lg">
+                                                                ${T.step_done}
+                                                            </div>
+                                                        `}
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p class="text-[10px] font-black uppercase tracking-widest ${state.selectedProduct?.name === p.name ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'} mb-4 group-hover:text-[var(--text-main)]">${p.name}</p>
-                                        ${!state.selectedProduct ? `
-                                            <div class="bg-[var(--bg-subtle)] text-[#C5A059] py-4 text-[9px] font-black uppercase tracking-[0.2em] group-hover:bg-[#C5A059] group-hover:text-black transition-all rounded-lg">
-                                                ${T.btn_add}
-                                            </div>
-                                        ` : `
-                                            <div class="bg-[#C5A059] text-black py-4 text-[9px] font-black uppercase tracking-[0.2em] rounded-lg">
-                                                ${T.step_done}
-                                            </div>
-                                        `}
-                                    </div>
-                                </div>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </div>
                     </section>
                     ` : ''}
@@ -406,6 +489,10 @@ const renderApp = () => {
                                         <p class="text-[9px] font-black uppercase tracking-widest text-[var(--text-main)]">${e.product.name}</p>
                                         <p class="text-[10px] text-[var(--text-main)] font-bold opacity-50 uppercase">${e.profile.name}</p>
                                         <p class="text-[10px] text-[#C5A059] font-mono mt-1">${e.width} x ${e.height}mm | ${e.quantity}st</p>
+                                        <div class="flex flex-wrap gap-2 mt-1">
+                                            <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">OUT: ${e.colorOut}</span>
+                                            <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">IN: ${e.colorIn}</span>
+                                        </div>
                                     </div>
                                     <button onclick="removeEntry(${e.id})" class="text-[var(--text-muted)] hover:text-red-500 transition-colors">
                                         ${ICONS.trash}
@@ -483,50 +570,181 @@ const renderApp = () => {
             </div>
         </div>
         ` : ''}
+
+        <!-- Admin Modal -->
+        ${state.isAdminOpen ? `
+        <div class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <div onclick="toggleAdmin()" class="absolute inset-0 bg-black/90 backdrop-blur-md"></div>
+            <div class="glass w-full max-w-4xl rounded-3xl overflow-hidden relative reveal shadow-2xl max-h-[90vh] flex flex-col border-2 border-[#C5A059]/50">
+                <div class="p-8 border-b border-[var(--border-color)] bg-[#C5A059]/5 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-black font-montserrat text-[#C5A059] uppercase tracking-tighter">${T.admin_title}</h2>
+                        <p class="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-widest mt-2">${T.admin_desc}</p>
+                    </div>
+                </div>
+                
+                <div class="flex-grow overflow-y-auto p-8 custom-scroll">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                        <!-- Profiles & Products -->
+                        <div class="space-y-12">
+                            <div class="flex justify-between items-center mb-8">
+                                <h3 class="text-xs font-black text-[#C5A059] tracking-[0.3em] uppercase">${T.admin_profiles}</h3>
+                            </div>
+
+                            <!-- Add Profile Form -->
+                            <form onsubmit="addProfileInAdmin(event)" class="p-6 rounded-2xl border border-dashed border-[#C5A059]/30 bg-[#C5A059]/5 space-y-4 mb-8">
+                                <h4 class="text-[10px] font-black text-[#C5A059] uppercase tracking-widest mb-4">${T.admin_add_profile}</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <input type="text" name="name" placeholder="${T.admin_name}" required class="tech-input text-[9px] py-2">
+                                    <input type="text" name="type" placeholder="${T.admin_type}" required class="tech-input text-[9px] py-2">
+                                </div>
+                                <input type="text" name="imageSrc" placeholder="${T.admin_image}" required class="tech-input text-[9px] py-2">
+                                <textarea name="description" placeholder="${T.admin_desc_field}" rows="2" class="tech-input text-[9px] py-2"></textarea>
+                                <button type="submit" class="w-full btn-gold py-2 text-[9px] rounded-lg">ADD</button>
+                            </form>
+
+                            ${state.profiles.map((profile: any) => {
+                                const isDisabled = state.disabledProfiles.includes(profile.name);
+                                return `
+                                <div class="space-y-4 p-6 rounded-2xl border ${isDisabled ? 'bg-red-500/5 border-red-500/20 opacity-60' : 'bg-white/5 border-white/10'}">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="text-sm font-black text-[var(--text-main)] uppercase tracking-widest border-l-4 border-[#C5A059] pl-4">${profile.name}</h3>
+                                        <button onclick="toggleProfileStatus('${profile.name}')" class="text-[8px] font-black px-3 py-1 rounded border ${isDisabled ? 'border-red-500 text-red-500' : 'border-green-500 text-green-500'}">
+                                            ${isDisabled ? T.admin_disabled : T.admin_active}
+                                        </button>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        ${state.products.map((product: any) => {
+                                            const isChecked = state.profileProductMap[profile.name]?.includes(product.name);
+                                            return `
+                                                <div onclick="toggleProductInProfile('${profile.name}', '${product.name}')" class="cursor-pointer p-2 rounded-lg border transition-all flex items-center gap-2 ${isChecked ? 'bg-[#C5A059]/10 border-[#C5A059] text-[#C5A059]' : 'bg-[var(--bg-subtle)] border-[var(--border-color)] text-[var(--text-muted)]'}">
+                                                    <div class="w-3 h-3 rounded border flex items-center justify-center ${isChecked ? 'bg-[#C5A059] border-[#C5A059]' : 'border-[var(--border-color)]'}">
+                                                        ${isChecked ? '<svg viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="4" class="w-2 h-2"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+                                                    </div>
+                                                    <span class="text-[8px] font-black uppercase tracking-tight truncate">${product.name}</span>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            `}).join('')}
+                        </div>
+
+                        <!-- Accessories & Products Management -->
+                        <div class="space-y-12">
+                            <h3 class="text-xs font-black text-[#C5A059] tracking-[0.3em] uppercase mb-8">${T.admin_acc}</h3>
+                            
+                            <!-- Add Product Form -->
+                            <form onsubmit="addProductInAdmin(event)" class="p-6 rounded-2xl border border-dashed border-[#C5A059]/30 bg-[#C5A059]/5 space-y-4 mb-8">
+                                <h4 class="text-[10px] font-black text-[#C5A059] uppercase tracking-widest mb-4">${T.admin_add_product}</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <input type="text" name="name" placeholder="${T.admin_name}" required class="tech-input text-[9px] py-2">
+                                    <select name="category" class="tech-input text-[9px] py-2 bg-transparent">
+                                        <option value="Okna">Okna</option>
+                                        <option value="Drzwi">Drzwi</option>
+                                        <option value="Suwanki">Suwanki</option>
+                                    </select>
+                                </div>
+                                <input type="text" name="imageSrc" placeholder="${T.admin_image}" required class="tech-input text-[9px] py-2">
+                                <button type="submit" class="w-full btn-gold py-2 text-[9px] rounded-lg">ADD</button>
+                            </form>
+
+                            <!-- Add Accessory Form -->
+                            <form onsubmit="addAccessoryInAdmin(event)" class="p-6 rounded-2xl border border-dashed border-[#C5A059]/30 bg-[#C5A059]/5 space-y-4 mb-8">
+                                <h4 class="text-[10px] font-black text-[#C5A059] uppercase tracking-widest mb-4">${T.admin_add_acc}</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <input type="text" name="name" placeholder="${T.admin_name}" required class="tech-input text-[9px] py-2">
+                                    <select name="category" class="tech-input text-[9px] py-2 bg-transparent">
+                                        <option value="Ventilation">Ventilation</option>
+                                        <option value="Handles">Handles</option>
+                                        <option value="Colors">Colors</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="w-full btn-gold py-2 text-[9px] rounded-lg">ADD</button>
+                            </form>
+
+                            <div class="space-y-8">
+                                ${['Ventilation', 'Handles', 'Colors'].map(cat => `
+                                    <div class="space-y-4">
+                                        <h4 class="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">${cat}</h4>
+                                        <div class="grid grid-cols-1 gap-2">
+                                            ${state.accessories.filter((a: any) => a.category === cat).map((acc: any) => {
+                                                const isEnabled = state.enabledAccessories.includes(acc.id);
+                                                return `
+                                                    <div onclick="toggleAccessory('${acc.id}')" class="cursor-pointer p-4 rounded-xl border transition-all flex justify-between items-center ${isEnabled ? 'bg-[#C5A059]/10 border-[#C5A059]' : 'bg-[var(--bg-subtle)] border-[var(--border-color)]'}">
+                                                        <span class="text-[10px] font-black uppercase tracking-widest ${isEnabled ? 'text-[#C5A059]' : 'text-[var(--text-muted)]'}">${acc.name}</span>
+                                                        <div class="w-10 h-5 rounded-full relative transition-colors ${isEnabled ? 'bg-[#C5A059]' : 'bg-gray-700'}">
+                                                            <div class="absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isEnabled ? 'left-6' : 'left-1'}"></div>
+                                                        </div>
+                                                    </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6 bg-[var(--bg-subtle)] border-t border-[var(--border-color)] flex justify-end">
+                    <button onclick="toggleAdmin()" class="btn-gold px-10 py-3 rounded-xl text-[10px]">CLOSE ADMIN</button>
+                </div>
+            </div>
+        </div>
+        ` : ''}
     `;
 };
 
 const renderEntry = (e: any, index: number, T: any) => {
     return `
-    <div class="tech-card flex flex-col lg:flex-row items-center gap-12 border-l-4 border-l-[#C5A059]">
+    <div class="tech-card flex flex-col xl:flex-row items-start gap-8 border-l-4 border-l-[#C5A059] p-6">
         <!-- Product Info -->
-        <div class="flex items-center space-x-8 w-full lg:w-1/4">
-            <div class="w-24 h-24 bg-[var(--bg-subtle)] p-3 rounded-2xl border border-[var(--border-color)] flex-shrink-0 flex items-center justify-center">
+        <div class="flex items-center space-x-6 w-full xl:w-1/4 pb-6 xl:pb-0 border-b xl:border-b-0 xl:border-r border-[var(--border-color)] xl:pr-8">
+            <div class="w-16 h-16 bg-[var(--bg-subtle)] p-2 rounded-xl border border-[var(--border-color)] flex-shrink-0 flex items-center justify-center">
                 <img src="${e.product.imageSrc}" class="w-full h-full object-contain">
             </div>
-            <div>
-                <p class="text-[14px] font-black text-[var(--text-main)] uppercase tracking-wider leading-tight">${e.product.name}</p>
-                <p class="text-[11px] text-[#C5A059] font-bold uppercase tracking-[0.2em] mt-2">${e.profile.name}</p>
+            <div class="overflow-hidden">
+                <p class="text-[12px] font-black text-[var(--text-main)] uppercase tracking-wider leading-tight truncate">${e.product.name}</p>
+                <p class="text-[9px] text-[#C5A059] font-bold uppercase tracking-[0.2em] mt-1 truncate">${e.profile.name}</p>
             </div>
         </div>
         
         <!-- Configuration Inputs -->
-        <div class="flex-grow grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6 md:gap-10 w-full">
+        <div class="flex-grow grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 w-full pt-6 xl:pt-0">
             <div class="flex flex-col">
-                <span class="text-[9px] sm:text-[10px] font-black text-[var(--text-muted)] mb-2 sm:mb-3 uppercase tracking-widest">${T.width}</span>
-                <input type="number" onchange="updateEntry(${e.id}, 'width', this.value)" value="${e.width}" class="tech-input text-sm md:text-base font-mono py-2 sm:py-3">
+                <span class="text-[8px] font-black text-[var(--text-muted)] mb-1 uppercase tracking-widest">${T.width}</span>
+                <input type="number" onchange="updateEntry(${e.id}, 'width', this.value)" value="${e.width}" class="tech-input text-xs font-mono py-2 px-3">
             </div>
             <div class="flex flex-col">
-                <span class="text-[9px] sm:text-[10px] font-black text-[var(--text-muted)] mb-2 sm:mb-3 uppercase tracking-widest">${T.height}</span>
-                <input type="number" onchange="updateEntry(${e.id}, 'height', this.value)" value="${e.height}" class="tech-input text-sm md:text-base font-mono py-2 sm:py-3">
+                <span class="text-[8px] font-black text-[var(--text-muted)] mb-1 uppercase tracking-widest">${T.height}</span>
+                <input type="number" onchange="updateEntry(${e.id}, 'height', this.value)" value="${e.height}" class="tech-input text-xs font-mono py-2 px-3">
             </div>
             <div class="flex flex-col">
-                <span class="text-[9px] sm:text-[10px] font-black text-[var(--text-muted)] mb-2 sm:mb-3 uppercase tracking-widest">${T.quantity}</span>
-                <input type="number" onchange="updateEntry(${e.id}, 'quantity', this.value)" value="${e.quantity}" class="tech-input text-sm md:text-base font-mono py-2 sm:py-3">
+                <span class="text-[8px] font-black text-[var(--text-muted)] mb-1 uppercase tracking-widest">${T.quantity}</span>
+                <input type="number" onchange="updateEntry(${e.id}, 'quantity', this.value)" value="${e.quantity}" class="tech-input text-xs font-mono py-2 px-3">
             </div>
             <div class="flex flex-col">
-                <span class="text-[9px] sm:text-[10px] font-black text-[var(--text-muted)] mb-2 sm:mb-3 uppercase tracking-widest">${T.glassType}</span>
-                <select onchange="updateEntry(${e.id}, 'glassType', this.value)" class="tech-input text-[11px] sm:text-[12px] md:text-[13px] bg-transparent font-bold py-2 sm:py-3">
-                    <option value="3-glas" ${e.glassType === '3-glas' ? 'selected' : ''}>3-glas (T4-16-4-16-4)</option>
-                    <option value="2-glas" ${e.glassType === '2-glas' ? 'selected' : ''}>2-glas (T4-16-4)</option>
+                <span class="text-[8px] font-black text-[var(--text-muted)] mb-1 uppercase tracking-widest">${T.glassType}</span>
+                <select onchange="updateEntry(${e.id}, 'glassType', this.value)" class="tech-input text-[10px] bg-transparent font-bold py-2 px-3">
+                    <option value="3-glas" ${e.glassType === '3-glas' ? 'selected' : ''}>3-glas</option>
+                    <option value="2-glas" ${e.glassType === '2-glas' ? 'selected' : ''}>2-glas</option>
                 </select>
             </div>
             <div class="flex flex-col">
-                <span class="text-[9px] sm:text-[10px] font-black text-[var(--text-muted)] mb-2 sm:mb-3 uppercase tracking-widest">${T.ventilation}</span>
-                <select onchange="updateEntry(${e.id}, 'ventilation', this.value)" class="tech-input text-[11px] sm:text-[12px] md:text-[13px] bg-transparent font-bold py-2 sm:py-3">
+                <span class="text-[8px] font-black text-[var(--text-muted)] mb-1 uppercase tracking-widest">${T.ventilation}</span>
+                <select onchange="updateEntry(${e.id}, 'ventilation', this.value)" class="tech-input text-[10px] bg-transparent font-bold py-2 px-3">
                     <option value="utan" ${e.ventilation === 'utan' ? 'selected' : ''}>${T.vent_none}</option>
                     <option value="med" ${e.ventilation === 'med' ? 'selected' : ''}>${T.vent_with}</option>
                 </select>
+            </div>
+            <div class="flex flex-col">
+                <span class="text-[8px] font-black text-[var(--text-muted)] mb-1 uppercase tracking-widest">${T.colorOut}</span>
+                <p class="text-[9px] font-bold text-[#C5A059] truncate">${e.colorOut}</p>
+            </div>
+            <div class="flex flex-col">
+                <span class="text-[8px] font-black text-[var(--text-muted)] mb-1 uppercase tracking-widest">${T.colorIn}</span>
+                <p class="text-[9px] font-bold text-[#C5A059] truncate">${e.colorIn}</p>
             </div>
         </div>
     </div>
@@ -535,44 +753,66 @@ const renderEntry = (e: any, index: number, T: any) => {
 
 const renderPendingEntry = (e: any, T: any) => {
     return `
-    <div class="tech-card flex flex-col lg:flex-row items-center gap-6 sm:gap-12 p-4 sm:p-10 border-2 border-[#C5A059]">
-        <!-- Product Info -->
-        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-10 w-full lg:w-1/3 text-center sm:text-left">
-            <div class="w-28 h-28 sm:w-40 sm:h-40 bg-[var(--bg-subtle)] p-4 sm:p-6 rounded-3xl border border-[var(--border-color)] flex-shrink-0 flex items-center justify-center">
+    <div class="tech-card flex flex-col xl:flex-row items-start gap-10 p-6 sm:p-10 border-2 border-[#C5A059] overflow-hidden">
+        <!-- Product Info Header -->
+        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 w-full xl:w-1/3 text-center sm:text-left border-b xl:border-b-0 xl:border-r border-[var(--border-color)] pb-8 xl:pb-0 xl:pr-10">
+            <div class="w-24 h-24 sm:w-32 sm:h-32 bg-[var(--bg-subtle)] p-4 rounded-2xl border border-[var(--border-color)] flex-shrink-0 flex items-center justify-center shadow-inner">
                 <img src="${e.product.imageSrc}" class="w-full h-full object-contain">
             </div>
-            <div class="w-full">
-                <p class="text-[9px] sm:text-[10px] font-black text-[#C5A059] tracking-[0.3em] sm:tracking-[0.4em] uppercase mb-2">${e.profile.name}</p>
-                <p class="text-xl sm:text-3xl font-black text-[var(--text-main)] uppercase tracking-tight leading-none">${e.product.name}</p>
+            <div class="w-full overflow-hidden">
+                <p class="text-[9px] font-black text-[#C5A059] tracking-[0.3em] uppercase mb-2 truncate">${e.profile.name}</p>
+                <h3 class="text-xl sm:text-2xl font-black text-[var(--text-main)] uppercase tracking-tight leading-tight break-words">
+                    ${e.product.name}
+                </h3>
             </div>
         </div>
         
-        <!-- Configuration Inputs -->
-        <div class="flex-grow grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-12 w-full">
+        <!-- Configuration Inputs Grid -->
+        <div class="flex-grow grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 w-full">
             <div class="flex flex-col">
-                <span class="text-[10px] sm:text-[11px] font-black text-[var(--text-muted)] mb-3 sm:mb-4 uppercase tracking-widest">${T.width}</span>
-                <input type="number" oninput="updatePendingEntry('width', this.value)" value="${e.width}" class="tech-input text-lg sm:text-xl font-mono py-3 sm:py-5 px-6 sm:px-8">
+                <label class="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">${T.width}</label>
+                <input type="number" oninput="updatePendingEntry('width', this.value)" value="${e.width}" class="tech-input text-base font-mono py-3 px-4">
             </div>
             <div class="flex flex-col">
-                <span class="text-[10px] sm:text-[11px] font-black text-[var(--text-muted)] mb-3 sm:mb-4 uppercase tracking-widest">${T.height}</span>
-                <input type="number" oninput="updatePendingEntry('height', this.value)" value="${e.height}" class="tech-input text-lg sm:text-xl font-mono py-3 sm:py-5 px-6 sm:px-8">
+                <label class="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">${T.height}</label>
+                <input type="number" oninput="updatePendingEntry('height', this.value)" value="${e.height}" class="tech-input text-base font-mono py-3 px-4">
             </div>
             <div class="flex flex-col">
-                <span class="text-[10px] sm:text-[11px] font-black text-[var(--text-muted)] mb-3 sm:mb-4 uppercase tracking-widest">${T.quantity}</span>
-                <input type="number" oninput="updatePendingEntry('quantity', this.value)" value="${e.quantity}" class="tech-input text-lg sm:text-xl font-mono py-3 sm:py-5 px-6 sm:px-8">
+                <label class="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">${T.quantity}</label>
+                <input type="number" oninput="updatePendingEntry('quantity', this.value)" value="${e.quantity}" class="tech-input text-base font-mono py-3 px-4">
             </div>
             <div class="flex flex-col">
-                <span class="text-[10px] sm:text-[11px] font-black text-[var(--text-muted)] mb-3 sm:mb-4 uppercase tracking-widest">${T.glassType}</span>
-                <select onchange="updatePendingEntry('glassType', this.value)" class="tech-input text-[13px] sm:text-[14px] bg-transparent font-bold py-3 sm:py-5 px-6 sm:px-8">
+                <label class="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">${T.glassType}</label>
+                <select onchange="updatePendingEntry('glassType', this.value)" class="tech-input text-[12px] bg-transparent font-bold py-3 px-4">
                     <option value="3-glas" ${e.glassType === '3-glas' ? 'selected' : ''}>3-glas (T4-16-4-16-4)</option>
                     <option value="2-glas" ${e.glassType === '2-glas' ? 'selected' : ''}>2-glas (T4-16-4)</option>
                 </select>
             </div>
             <div class="flex flex-col">
-                <span class="text-[10px] sm:text-[11px] font-black text-[var(--text-muted)] mb-3 sm:mb-4 uppercase tracking-widest">${T.ventilation}</span>
-                <select onchange="updatePendingEntry('ventilation', this.value)" class="tech-input text-[13px] sm:text-[14px] bg-transparent font-bold py-3 sm:py-5 px-6 sm:px-8">
+                <label class="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">${T.ventilation}</label>
+                <select onchange="updatePendingEntry('ventilation', this.value)" class="tech-input text-[12px] bg-transparent font-bold py-3 px-4">
                     <option value="utan" ${e.ventilation === 'utan' ? 'selected' : ''}>${T.vent_none}</option>
                     <option value="med" ${e.ventilation === 'med' ? 'selected' : ''}>${T.vent_with}</option>
+                </select>
+            </div>
+            <div class="flex flex-col">
+                <label class="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">${T.colorOut}</label>
+                <select onchange="updatePendingEntry('colorOut', this.value)" class="tech-input text-[12px] bg-transparent font-bold py-3 px-4">
+                    <option value="Biały" ${e.colorOut === 'Biały' ? 'selected' : ''}>Biały (Standard)</option>
+                    <option value="Antracyt" ${e.colorOut === 'Antracyt' ? 'selected' : ''}>Antracyt</option>
+                    <option value="Złoty Dąb" ${e.colorOut === 'Złoty Dąb' ? 'selected' : ''}>Złoty Dąb</option>
+                    <option value="Orzech" ${e.colorOut === 'Orzech' ? 'selected' : ''}>Orzech</option>
+                    <option value="Inny" ${e.colorOut === 'Inny' ? 'selected' : ''}>Inny (Opisz w uwagach)</option>
+                </select>
+            </div>
+            <div class="flex flex-col">
+                <label class="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">${T.colorIn}</label>
+                <select onchange="updatePendingEntry('colorIn', this.value)" class="tech-input text-[12px] bg-transparent font-bold py-3 px-4">
+                    <option value="Biały" ${e.colorIn === 'Biały' ? 'selected' : ''}>Biały (Standard)</option>
+                    <option value="Antracyt" ${e.colorIn === 'Antracyt' ? 'selected' : ''}>Antracyt</option>
+                    <option value="Złoty Dąb" ${e.colorIn === 'Złoty Dąb' ? 'selected' : ''}>Złoty Dąb</option>
+                    <option value="Orzech" ${e.colorIn === 'Orzech' ? 'selected' : ''}>Orzech</option>
+                    <option value="Inny" ${e.colorIn === 'Inny' ? 'selected' : ''}>Inny (Opisz w uwagach)</option>
                 </select>
             </div>
         </div>
@@ -582,11 +822,6 @@ const renderPendingEntry = (e: any, T: any) => {
 
 // --- HANDLERS ---
 window.changeLang = (l) => { state.currentLanguage = l; renderApp(); };
-window.setUIScale = (s) => { 
-    state.uiScale = s; 
-    document.documentElement.setAttribute('data-scale', s);
-    renderApp(); 
-};
 window.toggleTheme = () => {
     state.theme = state.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', state.theme);
@@ -616,7 +851,8 @@ window.addProduct = (n) => {
     state.selectedProduct = p;
     state.pendingEntry = { 
         id: Date.now(), product: p, profile: state.selectedProfile,
-        width: 1000, height: 1200, quantity: 1, glassType: '3-glas', ventilation: 'utan'
+        width: 1000, height: 1200, quantity: 1, glassType: '3-glas', ventilation: 'utan',
+        colorOut: 'Biały', colorIn: 'Biały'
     };
     renderApp();
     window.scrollToSection('step-03');
@@ -625,7 +861,7 @@ window.updatePendingEntry = (field, val) => {
     if (state.pendingEntry) {
         state.pendingEntry[field] = (field === 'width' || field === 'height' || field === 'quantity') ? Number(val) : val;
         // No full render here to avoid losing focus on input, but we need it for select/other logic
-        if (field === 'glassType' || field === 'ventilation') renderApp();
+        if (field === 'glassType' || field === 'ventilation' || field === 'colorOut' || field === 'colorIn') renderApp();
     }
 };
 window.confirmEntry = () => {
@@ -655,6 +891,82 @@ window.updateEntry = (id, field, val) => {
     if (e) { e[field] = (field === 'width' || field === 'height' || field === 'quantity') ? Number(val) : val; renderApp(); }
 };
 window.removeEntry = (id) => { state.formEntries = state.formEntries.filter((e: any) => e.id !== id); renderApp(); };
+window.toggleAdmin = () => { state.isAdminOpen = !state.isAdminOpen; renderApp(); };
+window.toggleProductInProfile = (profileName, productName) => {
+    if (!state.profileProductMap[profileName]) state.profileProductMap[profileName] = [];
+    const list = state.profileProductMap[profileName];
+    if (list.includes(productName)) {
+        state.profileProductMap[profileName] = list.filter((n: string) => n !== productName);
+    } else {
+        state.profileProductMap[profileName].push(productName);
+    }
+    saveStateToLocalStorage();
+    renderApp();
+};
+window.toggleProfileStatus = (profileName) => {
+    if (state.disabledProfiles.includes(profileName)) {
+        state.disabledProfiles = state.disabledProfiles.filter((n: string) => n !== profileName);
+    } else {
+        state.disabledProfiles.push(profileName);
+        if (state.selectedProfile?.name === profileName) state.selectedProfile = null;
+    }
+    saveStateToLocalStorage();
+    renderApp();
+};
+window.toggleAccessory = (accId) => {
+    if (state.enabledAccessories.includes(accId)) {
+        state.enabledAccessories = state.enabledAccessories.filter((id: string) => id !== accId);
+    } else {
+        state.enabledAccessories.push(accId);
+    }
+    saveStateToLocalStorage();
+    renderApp();
+};
+window.addProfileInAdmin = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const newProfile = {
+        name: formData.get('name') as string,
+        type: formData.get('type') as string,
+        specs: { Uw: '0.9', dB: '35', chambers: '5', depth: '70mm' },
+        imageSrc: formData.get('imageSrc') as string,
+        description: formData.get('description') as string
+    };
+    state.profiles.push(newProfile);
+    state.profileProductMap[newProfile.name] = state.products.map((p: any) => p.name);
+    saveStateToLocalStorage();
+    renderApp();
+};
+window.addProductInAdmin = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const newProduct = {
+        name: formData.get('name') as string,
+        category: formData.get('category') as string,
+        imageSrc: formData.get('imageSrc') as string
+    };
+    state.products.push(newProduct);
+    // Add to all profiles by default
+    state.profiles.forEach((p: any) => {
+        if (!state.profileProductMap[p.name]) state.profileProductMap[p.name] = [];
+        state.profileProductMap[p.name].push(newProduct.name);
+    });
+    saveStateToLocalStorage();
+    renderApp();
+};
+window.addAccessoryInAdmin = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const newAcc = {
+        id: 'acc_' + Date.now(),
+        name: formData.get('name') as string,
+        category: formData.get('category') as string
+    };
+    state.accessories.push(newAcc);
+    state.enabledAccessories.push(newAcc.id);
+    saveStateToLocalStorage();
+    renderApp();
+};
 window.toggleAI = () => { const b = document.getElementById('ai-bubble'); if (b) b.classList.toggle('hidden'); };
 window.renderAIAssistant = () => { const c = document.getElementById('ai-content'); if (c) c.innerHTML = state.aiIsLoading ? 'PROCESSING...' : state.aiMessage; };
 
@@ -682,7 +994,7 @@ window.handleFinalSubmit = async (ev) => {
     
     let productDetails = `CONFIGURATIONS:\n\n`;
     state.formEntries.forEach((e: any, i: number) => {
-        productDetails += `ITEM ${i+1}:\n- Profile: ${e.profile.name}\n- Product: ${e.product.name}\n- Size: ${e.width}x${e.height}mm\n- Qty: ${e.quantity}\n- Glass: ${e.glassType}\n- Vent: ${e.ventilation}\n\n`;
+        productDetails += `ITEM ${i+1}:\n- Profile: ${e.profile.name}\n- Product: ${e.product.name}\n- Size: ${e.width}x${e.height}mm\n- Qty: ${e.quantity}\n- Glass: ${e.glassType}\n- Vent: ${e.ventilation}\n- Color Out: ${e.colorOut}\n- Color In: ${e.colorIn}\n\n`;
     });
 
     const fullMessage = `CUSTOMER:\nName: ${data.firstName} ${data.lastName}\nEmail: ${data.email}\nPhone: ${data.phone}\nAddress: ${data.address}\n\nNOTES:\n${data.message}\n\n${productDetails}`;
@@ -701,7 +1013,25 @@ window.handleFinalSubmit = async (ev) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof emailjs !== 'undefined') emailjs.init("nkABopy-OhY0pGK5w");
-    document.documentElement.setAttribute('data-scale', state.uiScale);
+    
+    // 1. Try to load from LocalStorage
+    const hasSavedData = loadStateFromLocalStorage();
+
+    // 2. If no saved data, initialize from constants
+    if (!hasSavedData) {
+        state.profiles = [...PROFILES];
+        state.products = [...PRODUCTS];
+        state.accessories = [...ACCESSORIES];
+
+        // Initialize Profile-Product Map (Default: All products available for all profiles)
+        state.profiles.forEach((p: any) => {
+            state.profileProductMap[p.name] = state.products.map((prod: any) => prod.name);
+        });
+
+        // Initialize Accessories (Default: All enabled)
+        state.enabledAccessories = state.accessories.map((a: any) => a.id);
+    }
+
     document.documentElement.setAttribute('data-theme', state.theme);
     renderApp();
 });
