@@ -1,5 +1,14 @@
 
 import { GoogleGenAI } from "@google/genai";
+import { createClient } from '@supabase/supabase-js';
+
+// --- SUPABASE CONFIG ---
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const supabase = (SUPABASE_URL && SUPABASE_ANON_KEY) 
+    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
+    : null;
 
 // --- EXTERNAL TYPE DECLARATIONS ---
 declare const emailjs: any;
@@ -29,6 +38,10 @@ declare global {
         addProfileInAdmin: (e: Event) => void;
         addProductInAdmin: (e: Event) => void;
         addAccessoryInAdmin: (e: Event) => void;
+        handleCSVUpload: (e: Event) => void;
+        downloadCSVTemplate: () => void;
+        syncWithSupabase: () => void;
+        handleAdminLogin: (e: Event) => void;
     }
 }
 
@@ -155,7 +168,11 @@ const TRANSLATIONS: any = {
         cat_okna: 'Okna', cat_drzwi: 'Drzwi', cat_suwanki: 'Suwanki',
         colorOut: 'KOLOR ZEWNĄTRZ', colorIn: 'KOLOR WEWNĄTRZ',
         admin_add_profile: 'DODAJ PROFIL', admin_add_product: 'DODAJ PRODUKT', admin_add_acc: 'DODAJ DODATEK',
-        admin_name: 'NAZWA', admin_type: 'TYP', admin_image: 'URL OBRAZU', admin_desc_field: 'OPIS'
+        admin_name: 'NAZWA', admin_type: 'TYP', admin_image: 'URL OBRAZU', admin_desc_field: 'OPIS',
+        admin_import_csv: 'IMPORTUJ Z CSV', admin_import_desc: 'Wgraj plik CSV, aby masowo dodać dane.',
+        admin_import_btn: 'WYBIERZ PLIK', admin_download_template: 'POBIERZ SZABLON',
+        admin_pass_title: 'DOSTĘP ZABLOKOWANY', admin_pass_desc: 'Wprowadź hasło administratora, aby kontynuować.',
+        admin_pass_placeholder: 'HASŁO', admin_pass_btn: 'ZALOGUJ', admin_pass_error: 'Błędne hasło!'
     },
     en: {
         header: 'QUOTE REQUEST',
@@ -177,7 +194,11 @@ const TRANSLATIONS: any = {
         cat_okna: 'Windows', cat_drzwi: 'Doors', cat_suwanki: 'Sliding Doors',
         colorOut: 'COLOR OUTSIDE', colorIn: 'COLOR INSIDE',
         admin_add_profile: 'ADD PROFILE', admin_add_product: 'ADD PRODUCT', admin_add_acc: 'ADD ACCESSORY',
-        admin_name: 'NAME', admin_type: 'TYPE', admin_image: 'IMAGE URL', admin_desc_field: 'DESCRIPTION'
+        admin_name: 'NAME', admin_type: 'TYPE', admin_image: 'IMAGE URL', admin_desc_field: 'DESCRIPTION',
+        admin_import_csv: 'IMPORT FROM CSV', admin_import_desc: 'Upload a CSV file to bulk add data.',
+        admin_import_btn: 'CHOOSE FILE', admin_download_template: 'DOWNLOAD TEMPLATE',
+        admin_pass_title: 'ACCESS RESTRICTED', admin_pass_desc: 'Enter admin password to continue.',
+        admin_pass_placeholder: 'PASSWORD', admin_pass_btn: 'LOGIN', admin_pass_error: 'Incorrect password!'
     }
 };
 
@@ -214,7 +235,50 @@ let state: any = {
     submissionStatus: 'idle',
     aiMessage: "",
     aiIsLoading: false,
+    supabaseStatus: 'disconnected', // 'disconnected' | 'loading' | 'connected' | 'error'
+    isAdminAuthenticated: false
 };
+
+async function syncWithSupabase() {
+    if (!supabase) return;
+    state.supabaseStatus = 'loading';
+    renderApp();
+
+    try {
+        // Fetch Profiles
+        const { data: profiles, error: pError } = await supabase.from('profiles').select('*');
+        if (pError) throw pError;
+        if (profiles && profiles.length > 0) state.profiles = profiles;
+
+        // Fetch Products
+        const { data: products, error: prError } = await supabase.from('products').select('*');
+        if (prError) throw prError;
+        if (products && products.length > 0) state.products = products;
+
+        // Fetch Accessories
+        const { data: accessories, error: aError } = await supabase.from('accessories').select('*');
+        if (aError) throw aError;
+        if (accessories && accessories.length > 0) state.accessories = accessories;
+
+        // Fetch Map/Dependencies if exists
+        const { data: mapping, error: mError } = await supabase.from('profile_product_map').select('*');
+        if (!mError && mapping) {
+            const newMap: any = {};
+            mapping.forEach((row: any) => {
+                if (!newMap[row.profile_name]) newMap[row.profile_name] = [];
+                newMap[row.profile_name].push(row.product_name);
+            });
+            state.profileProductMap = newMap;
+        }
+
+        state.supabaseStatus = 'connected';
+        saveStateToLocalStorage();
+    } catch (err) {
+        console.error("Supabase Sync Error:", err);
+        state.supabaseStatus = 'error';
+    }
+    renderApp();
+}
 
 const STORAGE_KEY = 'offert_app_data_v1';
 
@@ -575,11 +639,56 @@ const renderApp = () => {
         ${state.isAdminOpen ? `
         <div class="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <div onclick="toggleAdmin()" class="absolute inset-0 bg-black/90 backdrop-blur-md"></div>
+            
+            ${!state.isAdminAuthenticated ? `
+            <!-- Password Protection UI -->
+            <div class="glass w-full max-w-md rounded-3xl overflow-hidden relative reveal shadow-2xl border-2 border-[#C5A059]/50 p-10 text-center">
+                <div class="w-16 h-16 bg-[#C5A059]/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#C5A059]/30">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#C5A059" stroke-width="2" class="w-8 h-8"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </div>
+                <h2 class="text-xl font-black font-montserrat text-[#C5A059] uppercase tracking-tighter mb-2">${T.admin_pass_title}</h2>
+                <p class="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-widest mb-8">${T.admin_pass_desc}</p>
+                
+                <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                    <input type="password" name="password" placeholder="${T.admin_pass_placeholder}" required class="tech-input text-center text-lg tracking-[0.5em]">
+                    <button type="submit" class="w-full btn-gold py-4 rounded-xl text-[10px]">${T.admin_pass_btn}</button>
+                </form>
+                <button onclick="toggleAdmin()" class="mt-6 text-[9px] text-[var(--text-muted)] uppercase font-bold hover:text-white transition-colors">${T.close}</button>
+            </div>
+            ` : `
+            <!-- Full Admin Panel -->
             <div class="glass w-full max-w-4xl rounded-3xl overflow-hidden relative reveal shadow-2xl max-h-[90vh] flex flex-col border-2 border-[#C5A059]/50">
                 <div class="p-8 border-b border-[var(--border-color)] bg-[#C5A059]/5 flex justify-between items-center">
                     <div>
                         <h2 class="text-2xl font-black font-montserrat text-[#C5A059] uppercase tracking-tighter">${T.admin_title}</h2>
                         <p class="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-widest mt-2">${T.admin_desc}</p>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <!-- Supabase Sync -->
+                        <div class="flex items-center gap-3 pr-6 border-r border-[var(--border-color)]">
+                            <div class="text-right">
+                                <p class="text-[9px] font-black text-[#C5A059] uppercase tracking-widest">SUPABASE CLOUD</p>
+                                <p class="text-[8px] ${state.supabaseStatus === 'error' ? 'text-red-500' : 'text-[var(--text-muted)]'} uppercase mt-1">
+                                    ${state.supabaseStatus === 'connected' ? 'ZSYNCHRONIZOWANO' : state.supabaseStatus === 'loading' ? 'SYNCHRONIZACJA...' : state.supabaseStatus === 'error' ? 'BŁĄD POŁĄCZENIA' : 'BRAK KONFIGURACJI'}
+                                </p>
+                            </div>
+                            <button onclick="syncWithSupabase()" class="w-10 h-10 rounded-xl border border-[#C5A059]/30 flex items-center justify-center hover:bg-[#C5A059]/10 transition-all ${state.supabaseStatus === 'loading' ? 'animate-spin' : ''}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#C5A059" stroke-width="2" class="w-5 h-5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <p class="text-[9px] font-black text-[#C5A059] uppercase tracking-widest">${T.admin_import_csv}</p>
+                                <p class="text-[8px] text-[var(--text-muted)] uppercase mt-1">${T.admin_import_desc}</p>
+                                <button onclick="downloadCSVTemplate()" class="text-[8px] text-[#C5A059] underline uppercase font-bold mt-1 hover:text-white transition-colors">${T.admin_download_template}</button>
+                            </div>
+                            <label class="btn-gold py-2 px-4 text-[9px] rounded-lg cursor-pointer flex items-center gap-2">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3 h-3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                ${T.admin_import_btn}
+                                <input type="file" accept=".csv" class="hidden" onchange="handleCSVUpload(event)">
+                            </label>
+                        </div>
                     </div>
                 </div>
                 
@@ -691,6 +800,7 @@ const renderApp = () => {
                     <button onclick="toggleAdmin()" class="btn-gold px-10 py-3 rounded-xl text-[10px]">CLOSE ADMIN</button>
                 </div>
             </div>
+            `}
         </div>
         ` : ''}
     `;
@@ -891,7 +1001,24 @@ window.updateEntry = (id, field, val) => {
     if (e) { e[field] = (field === 'width' || field === 'height' || field === 'quantity') ? Number(val) : val; renderApp(); }
 };
 window.removeEntry = (id) => { state.formEntries = state.formEntries.filter((e: any) => e.id !== id); renderApp(); };
-window.toggleAdmin = () => { state.isAdminOpen = !state.isAdminOpen; renderApp(); };
+window.toggleAdmin = () => { 
+    state.isAdminOpen = !state.isAdminOpen; 
+    if (!state.isAdminOpen) state.isAdminAuthenticated = false; // Reset auth on close
+    renderApp(); 
+};
+window.handleAdminLogin = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const pass = formData.get('password');
+    const correctPass = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
+    
+    if (pass === correctPass) {
+        state.isAdminAuthenticated = true;
+    } else {
+        alert(TRANSLATIONS[state.currentLanguage].admin_pass_error);
+    }
+    renderApp();
+};
 window.toggleProductInProfile = (profileName, productName) => {
     if (!state.profileProductMap[profileName]) state.profileProductMap[profileName] = [];
     const list = state.profileProductMap[profileName];
@@ -967,6 +1094,79 @@ window.addAccessoryInAdmin = (e) => {
     saveStateToLocalStorage();
     renderApp();
 };
+window.handleCSVUpload = (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const text = event.target?.result as string;
+        const lines = text.split('\n');
+        
+        lines.forEach(line => {
+            const parts = line.split(',').map(p => p.trim());
+            if (parts.length < 2) return;
+
+            const type = parts[0].toLowerCase();
+            if (type === 'profile' && parts.length >= 5) {
+                const newProfile = {
+                    name: parts[1],
+                    type: parts[2],
+                    specs: { Uw: '0.9', dB: '35', chambers: '5', depth: '70mm' },
+                    imageSrc: parts[3],
+                    description: parts[4]
+                };
+                if (!state.profiles.find((p: any) => p.name === newProfile.name)) {
+                    state.profiles.push(newProfile);
+                    state.profileProductMap[newProfile.name] = state.products.map((p: any) => p.name);
+                }
+            } else if (type === 'product' && parts.length >= 4) {
+                const newProduct = {
+                    name: parts[1],
+                    category: parts[2],
+                    imageSrc: parts[3]
+                };
+                if (!state.products.find((p: any) => p.name === newProduct.name)) {
+                    state.products.push(newProduct);
+                    state.profiles.forEach((p: any) => {
+                        if (!state.profileProductMap[p.name]) state.profileProductMap[p.name] = [];
+                        state.profileProductMap[p.name].push(newProduct.name);
+                    });
+                }
+            } else if (type === 'accessory' && parts.length >= 3) {
+                const newAcc = {
+                    id: 'acc_' + Date.now() + Math.random(),
+                    name: parts[1],
+                    category: parts[2]
+                };
+                if (!state.accessories.find((a: any) => a.name === newAcc.name)) {
+                    state.accessories.push(newAcc);
+                    state.enabledAccessories.push(newAcc.id);
+                }
+            }
+        });
+        saveStateToLocalStorage();
+        renderApp();
+        alert('Import zakończony pomyślnie!');
+    };
+    reader.readAsText(file);
+};
+window.downloadCSVTemplate = () => {
+    const csvContent = "type,name,category/type,imageSrc,description\n" +
+                       "profile,Nowy Profil,PVC,https://link-do-zdjecia.png,Opis techniczny profilu\n" +
+                       "product,Okno 1-skrzydłowe,Okna,https://link-do-grafiki.gif,\n" +
+                       "accessory,Klamka Czarna,Handles,,";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "szablon_importu.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+window.syncWithSupabase = syncWithSupabase;
 window.toggleAI = () => { const b = document.getElementById('ai-bubble'); if (b) b.classList.toggle('hidden'); };
 window.renderAIAssistant = () => { const c = document.getElementById('ai-content'); if (c) c.innerHTML = state.aiIsLoading ? 'PROCESSING...' : state.aiMessage; };
 
