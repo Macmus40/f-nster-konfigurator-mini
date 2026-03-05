@@ -9,8 +9,9 @@ export const ACCESSORIES: Accessory[] = [
 ];
 
 // UWAGA: Wszystkie obrazy produktów można teraz wrzucać do folderu /public/images/
-// i odwoływać się do nich poprzez ścieżkę: '/images/nazwa_pliku.jpg'
-// Przykład: imageSrc: '/images/okno-1.png'
+// z podziałem na podkatalogi: /fönster, /dörr, /terrassystem
+// i odwoływać się do nich poprzez ścieżkę: '/images/[KATEGORIA]/nazwa_pliku.jpg'
+// Przykład: imageSrc: '/images/fönster/okno-1.png'
 
 export const PROFILES: Profile[] = [
     { 
