@@ -137,7 +137,7 @@ const TRANSLATIONS: any = {
         step1: 'VÄLJ PROFIL', step2: 'VÄLJ PRODUKT', step3: 'KONFIGURERA ENHETER',
         btn_send: 'SKICKA FÖRFRÅGAN', btn_add: 'LÄGG TILL ENHET', summary: 'DIN PROJEKTLISTA',
         empty: 'Välj en produkt för att börja.', ai: 'G-Assistant: Redo för teknisk analys.',
-        width: 'BREDD (MM)', height: 'HÖJD (MM)', quantity: 'ANTAL', glassType: 'GLAS TYP',
+        width: 'BREDD (MM)', height: 'HÖJD (MM)', quantity: 'ANTAL', glassType: 'GLASTYP',
         ventilation: 'VENTILATION', fName: 'FÖRNAMN', lName: 'EFTERNAMN', email: 'E-POSTADRESS',
         phone: 'TELEFONNUMMER', address: 'ADRESS (GATA & STAD)', message: 'MEDDELANDE / ÖVRIGT...',
         success: 'Förfrågan har skickats!', error: 'Ett fel uppstod vid sändning.', sending: 'SÄNDER...',
@@ -146,7 +146,15 @@ const TRANSLATIONS: any = {
         btn_confirm: 'LÄGG TILL I PROJEKTLISTA', btn_change: 'ÄNDRA', step_done: 'VALD',
         last_used: 'SENAST VALD',
         cat_okna: 'Fönster', cat_drzwi: 'Dörrar', cat_suwanki: 'Skjutdörrar',
-        colorOut: 'FÄRG UTSIDA', colorIn: 'FÄRG INSIDA'
+        colorOut: 'FÄRG UTSIDA', colorIn: 'FÄRG INSIDA',
+        color_white: 'Vit', color_anthracite: 'Antracit', color_golden_oak: 'Gyllene ek',
+        color_walnut: 'Valnöt', color_other: 'Annan', color_other_desc: 'Annan (beskriv i kommentarer)',
+        spec_uw: 'Isolering', spec_db: 'Akustik', spec_chambers: 'Kamrar', spec_depth: 'Djup',
+        glass_3: '3-glas', glass_2: '2-glas',
+        standard: 'Standard', close: 'STÄNG',
+        admin_sync_ok: 'SYNKRONISERAD', admin_sync_loading: 'SYNKRONISERAR...', 
+        admin_sync_error: 'ANSLUTNINGSFEL', admin_sync_none: 'INGEN KONFIGURATION',
+        admin_btn_add: 'LÄGG TILL', cat_ventilation: 'Ventilation', cat_handles: 'Handtag', cat_colors: 'Färger'
     },
     pl: {
         header: 'ZAPYTANIE OFERTOWE',
@@ -167,6 +175,11 @@ const TRANSLATIONS: any = {
         admin_status: 'STATUS', admin_active: 'AKTYWNY', admin_disabled: 'WYŁĄCZONY',
         cat_okna: 'Okna', cat_drzwi: 'Drzwi', cat_suwanki: 'Suwanki',
         colorOut: 'KOLOR ZEWNĄTRZ', colorIn: 'KOLOR WEWNĄTRZ',
+        color_white: 'Biały', color_anthracite: 'Antracyt', color_golden_oak: 'Złoty Dąb',
+        color_walnut: 'Orzech', color_other: 'Inny', color_other_desc: 'Inny (Opisz w uwagach)',
+        spec_uw: 'Izolacja', spec_db: 'Akustyka', spec_chambers: 'Komory', spec_depth: 'Głębokość',
+        glass_3: '3-szybowe', glass_2: '2-szybowe',
+        standard: 'Standard', close: 'ZAMKNIJ',
         admin_add_profile: 'DODAJ PROFIL', admin_add_product: 'DODAJ PRODUKT', admin_add_acc: 'DODAJ DODATEK',
         admin_name: 'NAZWA', admin_type: 'TYP', admin_image: 'URL OBRAZU', admin_desc_field: 'OPIS',
         admin_import_csv: 'IMPORTUJ Z CSV', admin_import_desc: 'Wgraj plik CSV, aby masowo dodać dane.',
@@ -193,6 +206,11 @@ const TRANSLATIONS: any = {
         admin_status: 'STATUS', admin_active: 'ACTIVE', admin_disabled: 'DISABLED',
         cat_okna: 'Windows', cat_drzwi: 'Doors', cat_suwanki: 'Sliding Doors',
         colorOut: 'COLOR OUTSIDE', colorIn: 'COLOR INSIDE',
+        color_white: 'White', color_anthracite: 'Anthracite', color_golden_oak: 'Golden Oak',
+        color_walnut: 'Walnut', color_other: 'Other', color_other_desc: 'Other (describe in notes)',
+        spec_uw: 'Insulation', spec_db: 'Acoustics', spec_chambers: 'Chambers', spec_depth: 'Depth',
+        glass_3: '3-pane', glass_2: '2-pane',
+        standard: 'Standard', close: 'CLOSE',
         admin_add_profile: 'ADD PROFILE', admin_add_product: 'ADD PRODUCT', admin_add_acc: 'ADD ACCESSORY',
         admin_name: 'NAME', admin_type: 'TYPE', admin_image: 'IMAGE URL', admin_desc_field: 'DESCRIPTION',
         admin_import_csv: 'IMPORT FROM CSV', admin_import_desc: 'Upload a CSV file to bulk add data.',
@@ -450,10 +468,10 @@ const renderApp = () => {
                                             ${isSelected ? `<div class="bg-[#C5A059] text-black text-[8px] sm:text-[9px] px-3 py-1 font-black rounded-full uppercase self-start sm:self-center">${T.step_done}</div>` : ''}
                                         </div>
                                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                            <div class="spec-item"><p class="text-[7px] sm:text-[8px] opacity-40 uppercase">Isolering</p><p class="text-2xs sm:text-xs font-mono font-bold text-[#C5A059]">Uw ${p.specs.Uw}</p></div>
-                                            <div class="spec-item"><p class="text-[7px] sm:text-[8px] opacity-40 uppercase">Akustik</p><p class="text-2xs sm:text-xs font-mono font-bold text-[#C5A059]">${p.specs.dB} dB</p></div>
-                                            <div class="spec-item"><p class="text-[7px] sm:text-[8px] opacity-40 uppercase">Komrar</p><p class="text-2xs sm:text-xs font-mono font-bold text-[#C5A059]">${p.specs.chambers}</p></div>
-                                            <div class="spec-item"><p class="text-[7px] sm:text-[8px] opacity-40 uppercase">Djup</p><p class="text-2xs sm:text-xs font-mono font-bold text-[#C5A059]">${p.specs.depth}</p></div>
+                                            <div class="spec-item"><p class="text-[7px] sm:text-[8px] opacity-40 uppercase">${T.spec_uw}</p><p class="text-2xs sm:text-xs font-mono font-bold text-[#C5A059]">Uw ${p.specs.Uw}</p></div>
+                                            <div class="spec-item"><p class="text-[7px] sm:text-[8px] opacity-40 uppercase">${T.spec_db}</p><p class="text-2xs sm:text-xs font-mono font-bold text-[#C5A059]">${p.specs.dB} dB</p></div>
+                                            <div class="spec-item"><p class="text-[7px] sm:text-[8px] opacity-40 uppercase">${T.spec_chambers}</p><p class="text-2xs sm:text-xs font-mono font-bold text-[#C5A059]">${p.specs.chambers}</p></div>
+                                            <div class="spec-item"><p class="text-[7px] sm:text-[8px] opacity-40 uppercase">${T.spec_depth}</p><p class="text-2xs sm:text-xs font-mono font-bold text-[#C5A059]">${p.specs.depth}</p></div>
                                         </div>
                                     </div>
                                 </div>
@@ -554,8 +572,8 @@ const renderApp = () => {
                                         <p class="text-[10px] text-[var(--text-main)] font-bold opacity-50 uppercase">${e.profile.name}</p>
                                         <p class="text-[10px] text-[#C5A059] font-mono mt-1">${e.width} x ${e.height}mm | ${e.quantity}st</p>
                                         <div class="flex flex-wrap gap-2 mt-1">
-                                            <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">OUT: ${e.colorOut}</span>
-                                            <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">IN: ${e.colorIn}</span>
+                                            <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">${T.colorOut}: ${T['color_' + e.colorOut] || e.colorOut}</span>
+                                            <span class="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">${T.colorIn}: ${T['color_' + e.colorIn] || e.colorIn}</span>
                                         </div>
                                     </div>
                                     <button onclick="removeEntry(${e.id})" class="text-[var(--text-muted)] hover:text-red-500 transition-colors">
@@ -620,10 +638,10 @@ const renderApp = () => {
                             <p class="text-[var(--text-muted)] leading-relaxed text-[11px] sm:text-sm mb-6 sm:mb-8">${state.infoProfile.description}</p>
                             
                             <div class="grid grid-cols-2 gap-3 sm:gap-4">
-                                <div class="spec-item"><p class="text-[7px] sm:text-[9px] opacity-40 uppercase mb-1">Isolering</p><p class="text-[11px] sm:text-sm font-mono font-bold text-[#C5A059]">Uw ${state.infoProfile.specs.Uw}</p></div>
-                                <div class="spec-item"><p class="text-[7px] sm:text-[9px] opacity-40 uppercase mb-1">Akustik</p><p class="text-[11px] sm:text-sm font-mono font-bold text-[#C5A059]">${state.infoProfile.specs.dB} dB</p></div>
-                                <div class="spec-item"><p class="text-[7px] sm:text-[9px] opacity-40 uppercase mb-1">Kamrar</p><p class="text-[11px] sm:text-sm font-mono font-bold text-[#C5A059]">${state.infoProfile.specs.chambers}</p></div>
-                                <div class="spec-item"><p class="text-[7px] sm:text-[9px] opacity-40 uppercase mb-1">Djup</p><p class="text-[11px] sm:text-sm font-mono font-bold text-[#C5A059]">${state.infoProfile.specs.depth}</p></div>
+                                <div class="spec-item"><p class="text-[7px] sm:text-[9px] opacity-40 uppercase mb-1">${T.spec_uw}</p><p class="text-[11px] sm:text-sm font-mono font-bold text-[#C5A059]">Uw ${state.infoProfile.specs.Uw}</p></div>
+                                <div class="spec-item"><p class="text-[7px] sm:text-[9px] opacity-40 uppercase mb-1">${T.spec_db}</p><p class="text-[11px] sm:text-sm font-mono font-bold text-[#C5A059]">${state.infoProfile.specs.dB} dB</p></div>
+                                <div class="spec-item"><p class="text-[7px] sm:text-[9px] opacity-40 uppercase mb-1">${T.spec_chambers}</p><p class="text-[11px] sm:text-sm font-mono font-bold text-[#C5A059]">${state.infoProfile.specs.chambers}</p></div>
+                                <div class="spec-item"><p class="text-[7px] sm:text-[9px] opacity-40 uppercase mb-1">${T.spec_depth}</p><p class="text-[11px] sm:text-sm font-mono font-bold text-[#C5A059]">${state.infoProfile.specs.depth}</p></div>
                             </div>
                         </div>
                     </div>
@@ -837,8 +855,8 @@ const renderEntry = (e: any, index: number, T: any) => {
             <div class="flex flex-col">
                 <span class="text-[8px] font-black text-[var(--text-muted)] mb-1 uppercase tracking-widest">${T.glassType}</span>
                 <select onchange="updateEntry(${e.id}, 'glassType', this.value)" class="tech-input text-[10px] bg-transparent font-bold py-2 px-3">
-                    <option value="3-glas" ${e.glassType === '3-glas' ? 'selected' : ''}>3-glas</option>
-                    <option value="2-glas" ${e.glassType === '2-glas' ? 'selected' : ''}>2-glas</option>
+                    <option value="3-glas" ${e.glassType === '3-glas' ? 'selected' : ''}>${T.glass_3}</option>
+                    <option value="2-glas" ${e.glassType === '2-glas' ? 'selected' : ''}>${T.glass_2}</option>
                 </select>
             </div>
             <div class="flex flex-col">
@@ -850,11 +868,11 @@ const renderEntry = (e: any, index: number, T: any) => {
             </div>
             <div class="flex flex-col">
                 <span class="text-[8px] font-black text-[var(--text-muted)] mb-1 uppercase tracking-widest">${T.colorOut}</span>
-                <p class="text-[9px] font-bold text-[#C5A059] truncate">${e.colorOut}</p>
+                <p class="text-[9px] font-bold text-[#C5A059] truncate">${T['color_' + e.colorOut] || e.colorOut}</p>
             </div>
             <div class="flex flex-col">
                 <span class="text-[8px] font-black text-[var(--text-muted)] mb-1 uppercase tracking-widest">${T.colorIn}</span>
-                <p class="text-[9px] font-bold text-[#C5A059] truncate">${e.colorIn}</p>
+                <p class="text-[9px] font-bold text-[#C5A059] truncate">${T['color_' + e.colorIn] || e.colorIn}</p>
             </div>
         </div>
     </div>
@@ -894,8 +912,8 @@ const renderPendingEntry = (e: any, T: any) => {
             <div class="flex flex-col">
                 <label class="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">${T.glassType}</label>
                 <select onchange="updatePendingEntry('glassType', this.value)" class="tech-input text-[12px] bg-transparent font-bold py-3 px-4">
-                    <option value="3-glas" ${e.glassType === '3-glas' ? 'selected' : ''}>3-glas (T4-16-4-16-4)</option>
-                    <option value="2-glas" ${e.glassType === '2-glas' ? 'selected' : ''}>2-glas (T4-16-4)</option>
+                    <option value="3-glas" ${e.glassType === '3-glas' ? 'selected' : ''}>${T.glass_3} (T4-16-4-16-4)</option>
+                    <option value="2-glas" ${e.glassType === '2-glas' ? 'selected' : ''}>${T.glass_2} (T4-16-4)</option>
                 </select>
             </div>
             <div class="flex flex-col">
@@ -908,21 +926,21 @@ const renderPendingEntry = (e: any, T: any) => {
             <div class="flex flex-col">
                 <label class="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">${T.colorOut}</label>
                 <select onchange="updatePendingEntry('colorOut', this.value)" class="tech-input text-[12px] bg-transparent font-bold py-3 px-4">
-                    <option value="Biały" ${e.colorOut === 'Biały' ? 'selected' : ''}>Biały (Standard)</option>
-                    <option value="Antracyt" ${e.colorOut === 'Antracyt' ? 'selected' : ''}>Antracyt</option>
-                    <option value="Złoty Dąb" ${e.colorOut === 'Złoty Dąb' ? 'selected' : ''}>Złoty Dąb</option>
-                    <option value="Orzech" ${e.colorOut === 'Orzech' ? 'selected' : ''}>Orzech</option>
-                    <option value="Inny" ${e.colorOut === 'Inny' ? 'selected' : ''}>Inny (Opisz w uwagach)</option>
+                    <option value="white" ${e.colorOut === 'white' ? 'selected' : ''}>${T.color_white} (${T.standard})</option>
+                    <option value="anthracite" ${e.colorOut === 'anthracite' ? 'selected' : ''}>${T.color_anthracite}</option>
+                    <option value="golden_oak" ${e.colorOut === 'golden_oak' ? 'selected' : ''}>${T.color_golden_oak}</option>
+                    <option value="walnut" ${e.colorOut === 'walnut' ? 'selected' : ''}>${T.color_walnut}</option>
+                    <option value="other" ${e.colorOut === 'other' ? 'selected' : ''}>${T.color_other_desc}</option>
                 </select>
             </div>
             <div class="flex flex-col">
                 <label class="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">${T.colorIn}</label>
                 <select onchange="updatePendingEntry('colorIn', this.value)" class="tech-input text-[12px] bg-transparent font-bold py-3 px-4">
-                    <option value="Biały" ${e.colorIn === 'Biały' ? 'selected' : ''}>Biały (Standard)</option>
-                    <option value="Antracyt" ${e.colorIn === 'Antracyt' ? 'selected' : ''}>Antracyt</option>
-                    <option value="Złoty Dąb" ${e.colorIn === 'Złoty Dąb' ? 'selected' : ''}>Złoty Dąb</option>
-                    <option value="Orzech" ${e.colorIn === 'Orzech' ? 'selected' : ''}>Orzech</option>
-                    <option value="Inny" ${e.colorIn === 'Inny' ? 'selected' : ''}>Inny (Opisz w uwagach)</option>
+                    <option value="white" ${e.colorIn === 'white' ? 'selected' : ''}>${T.color_white} (${T.standard})</option>
+                    <option value="anthracite" ${e.colorIn === 'anthracite' ? 'selected' : ''}>${T.color_anthracite}</option>
+                    <option value="golden_oak" ${e.colorIn === 'golden_oak' ? 'selected' : ''}>${T.color_golden_oak}</option>
+                    <option value="walnut" ${e.colorIn === 'walnut' ? 'selected' : ''}>${T.color_walnut}</option>
+                    <option value="other" ${e.colorIn === 'other' ? 'selected' : ''}>${T.color_other_desc}</option>
                 </select>
             </div>
         </div>
@@ -962,7 +980,7 @@ window.addProduct = (n) => {
     state.pendingEntry = { 
         id: Date.now(), product: p, profile: state.selectedProfile,
         width: 1000, height: 1200, quantity: 1, glassType: '3-glas', ventilation: 'utan',
-        colorOut: 'Biały', colorIn: 'Biały'
+        colorOut: 'white', colorIn: 'white'
     };
     renderApp();
     window.scrollToSection('step-03');
