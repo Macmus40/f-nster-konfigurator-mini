@@ -8,6 +8,10 @@ export const ACCESSORIES: Accessory[] = [
     { id: 'color_oak', name: 'Złoty Dąb', category: 'Colors' },
 ];
 
+// UWAGA: Wszystkie obrazy produktów można teraz wrzucać do folderu /public/images/
+// i odwoływać się do nich poprzez ścieżkę: '/images/nazwa_pliku.jpg'
+// Przykład: imageSrc: '/images/okno-1.png'
+
 export const PROFILES: Profile[] = [
     { 
         name: 'Iglo5', 
