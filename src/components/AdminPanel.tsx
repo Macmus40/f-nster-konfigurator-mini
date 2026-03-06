@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AppState, Profile, Product, Accessory } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { supabase } from '../supabaseClient';
-import { Settings, X, Upload, Download, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Settings, X, Upload, Download, CheckCircle2, AlertCircle, Loader2, Check, Github } from 'lucide-react';
 
 interface AdminPanelProps {
     state: AppState;
@@ -37,7 +37,9 @@ export default function AdminPanel({ state, updateState, syncWithSupabase }: Adm
 
     const toggleProductInProfile = (profileName: string, productName: string) => {
         const map = { ...state.profileProductMap };
-        if (!map[profileName]) map[profileName] = [];
+        if (!map[profileName]) {
+            map[profileName] = state.products.map(p => p.name);
+        }
         
         if (map[profileName].includes(productName)) {
             map[profileName] = map[profileName].filter(p => p !== productName);
@@ -45,6 +47,20 @@ export default function AdminPanel({ state, updateState, syncWithSupabase }: Adm
             map[profileName].push(productName);
         }
         updateState({ profileProductMap: map });
+    };
+
+    const toggleAccessoryInProfile = (profileName: string, accId: string) => {
+        const map = { ...state.profileAccessoryMap };
+        if (!map[profileName]) {
+            map[profileName] = state.accessories.map(a => a.id);
+        }
+        
+        if (map[profileName].includes(accId)) {
+            map[profileName] = map[profileName].filter(id => id !== accId);
+        } else {
+            map[profileName].push(accId);
+        }
+        updateState({ profileAccessoryMap: map });
     };
 
     const toggleAccessory = (accId: string) => {
@@ -82,7 +98,7 @@ export default function AdminPanel({ state, updateState, syncWithSupabase }: Adm
                     <button onClick={closeAdmin} className="mt-6 text-[9px] text-[var(--text-muted)] uppercase font-bold hover:text-white transition-colors">CLOSE</button>
                 </div>
             ) : (
-                <div className="glass w-full max-w-4xl rounded-3xl overflow-hidden relative shadow-2xl max-h-[90vh] flex flex-col border-2 border-[#C5A059]/50 animate-in fade-in zoom-in duration-300">
+                <div className="glass w-full max-w-[95vw] rounded-3xl overflow-hidden relative shadow-2xl max-h-[90vh] flex flex-col border-2 border-[#C5A059]/50 animate-in fade-in zoom-in duration-300">
                     <div className="p-8 border-b border-[var(--border-color)] bg-[#C5A059]/5 flex justify-between items-center">
                         <div>
                             <h2 className="text-2xl font-black font-montserrat text-[#C5A059] uppercase tracking-tighter">{T.admin_title}</h2>
@@ -91,75 +107,99 @@ export default function AdminPanel({ state, updateState, syncWithSupabase }: Adm
                         <div className="flex items-center gap-6">
                             <div className="flex items-center gap-3 pr-6 border-r border-[var(--border-color)]">
                                 <div className="text-right">
-                                    <p className="text-[9px] font-black text-[#C5A059] uppercase tracking-widest">SUPABASE CLOUD</p>
-                                    <p className={`text-[8px] uppercase mt-1 ${state.supabaseStatus === 'error' ? 'text-red-500' : 'text-[var(--text-muted)]'}`}>
-                                        {state.supabaseStatus === 'connected' ? 'SYNCED' : state.supabaseStatus === 'loading' ? 'SYNCING...' : state.supabaseStatus === 'error' ? 'ERROR' : 'NOT CONFIGURED'}
+                                    <p className="text-[9px] font-black text-[#C5A059] uppercase tracking-widest">GITHUB REPO</p>
+                                    <p className="text-[8px] uppercase mt-1 text-[var(--text-muted)]">
+                                        CONNECTED
                                     </p>
                                 </div>
-                                <button onClick={syncWithSupabase} className={`w-10 h-10 rounded-xl border border-[#C5A059]/30 flex items-center justify-center hover:bg-[#C5A059]/10 transition-all ${state.supabaseStatus === 'loading' ? 'animate-spin' : ''}`}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="#C5A059" strokeWidth="2" className="w-5 h-5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                                </button>
+                                <a 
+                                    href="https://github.com/Macmus40/f-nster-konfigurator-mini" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="w-10 h-10 rounded-xl border border-[#C5A059]/30 flex items-center justify-center hover:bg-[#C5A059]/10 transition-all"
+                                >
+                                    <Github size={20} className="text-[#C5A059]" />
+                                </a>
                             </div>
                         </div>
                     </div>
                     
                     <div className="flex-grow overflow-y-auto p-8 custom-scroll">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                            {/* Profiles & Products */}
-                            <div className="space-y-12">
-                                <h3 className="text-xs font-black text-[#C5A059] tracking-[0.3em] uppercase mb-8">{T.admin_profiles}</h3>
-                                {state.profiles.map(profile => {
-                                    const isDisabled = state.disabledProfiles.includes(profile.name);
-                                    return (
-                                        <div key={profile.name} className={`space-y-4 p-6 rounded-2xl border ${isDisabled ? 'bg-red-500/5 border-red-500/20 opacity-60' : 'bg-white/5 border-white/10'}`}>
-                                            <div className="flex justify-between items-center mb-4">
-                                                <h3 className="text-sm font-black text-[var(--text-main)] uppercase tracking-widest border-l-4 border-[#C5A059] pl-4">{profile.name}</h3>
-                                                <button onClick={() => toggleProfileStatus(profile.name)} className={`text-[8px] font-black px-3 py-1 rounded border ${isDisabled ? 'border-red-500 text-red-500' : 'border-green-500 text-green-500'}`}>
-                                                    {isDisabled ? T.admin_disabled : T.admin_active}
-                                                </button>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-12">
+                            <h3 className="text-xs font-black text-[#C5A059] tracking-[0.3em] uppercase mb-8">{T.admin_profiles}</h3>
+                            {state.profiles.map(profile => {
+                                const isDisabled = state.disabledProfiles.includes(profile.name);
+                                return (
+                                    <div key={profile.name} className={`space-y-4 p-8 rounded-2xl border ${isDisabled ? 'bg-red-500/5 border-red-500/20 opacity-60' : 'bg-white/5 border-white/10'}`}>
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h3 className="text-lg font-black text-[var(--text-main)] uppercase tracking-widest border-l-4 border-[#C5A059] pl-6">{profile.name}</h3>
+                                            <button onClick={() => toggleProfileStatus(profile.name)} className={`text-[10px] font-black px-4 py-2 rounded border ${isDisabled ? 'border-red-500 text-red-500' : 'border-green-500 text-green-500'}`}>
+                                                {isDisabled ? T.admin_disabled : T.admin_active}
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="space-y-4">
+                                            <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">{T.step2}</h4>
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
                                                 {state.products.map(product => {
-                                                    const isChecked = state.profileProductMap[profile.name]?.includes(product.name);
+                                                    const isChecked = state.profileProductMap[profile.name] ? state.profileProductMap[profile.name].includes(product.name) : true;
                                                     return (
-                                                        <div key={product.name} onClick={() => toggleProductInProfile(profile.name, product.name)} className={`cursor-pointer p-2 rounded-lg border transition-all flex items-center gap-2 ${isChecked ? 'bg-[#C5A059]/10 border-[#C5A059] text-[#C5A059]' : 'bg-[var(--bg-subtle)] border-[var(--border-color)] text-[var(--text-muted)]'}`}>
-                                                            <div className={`w-3 h-3 rounded border flex items-center justify-center ${isChecked ? 'bg-[#C5A059] border-[#C5A059]' : 'border-[var(--border-color)]'}`}>
-                                                                {isChecked && <Check size={10} className="text-black" strokeWidth={4} />}
+                                                        <div 
+                                                            key={product.name} 
+                                                            onClick={() => toggleProductInProfile(profile.name, product.name)} 
+                                                            className={`cursor-pointer p-4 rounded-xl border transition-all flex flex-col items-center gap-4 text-center ${isChecked ? 'bg-[#C5A059]/20 border-[#C5A059] shadow-[0_0_15px_rgba(197,160,89,0.1)]' : 'bg-[var(--bg-subtle)] border-[var(--border-color)] opacity-60 hover:opacity-100'}`}
+                                                        >
+                                                            <div className="w-full h-16 flex items-center justify-center bg-black/20 rounded-lg p-1">
+                                                                <img src={product.imageSrc} alt={product.name} className="max-h-full object-contain" />
                                                             </div>
-                                                            <span className="text-[8px] font-black uppercase tracking-tight truncate">{product.name}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className={`w-4 h-4 rounded-sm border flex items-center justify-center ${isChecked ? 'bg-[#C5A059] border-[#C5A059]' : 'border-[var(--border-color)]'}`}>
+                                                                    {isChecked && <Check size={12} className="text-black" strokeWidth={4} />}
+                                                                </div>
+                                                                <span className="text-[9px] font-black uppercase tracking-tight leading-tight">{product.name}</span>
+                                                            </div>
                                                         </div>
                                                     );
                                                 })}
                                             </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
 
-                            {/* Accessories */}
-                            <div className="space-y-12">
-                                <h3 className="text-xs font-black text-[#C5A059] tracking-[0.3em] uppercase mb-8">{T.admin_acc}</h3>
-                                <div className="space-y-8">
-                                    {['Ventilation', 'Handles', 'Colors'].map(cat => (
-                                        <div key={cat} className="space-y-4">
-                                            <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">{cat}</h4>
-                                            <div className="grid grid-cols-1 gap-2">
-                                                {state.accessories.filter(a => a.category === cat).map(acc => {
-                                                    const isEnabled = state.enabledAccessories.includes(acc.id);
-                                                    return (
-                                                        <div key={acc.id} onClick={() => toggleAccessory(acc.id)} className={`cursor-pointer p-4 rounded-xl border transition-all flex justify-between items-center ${isEnabled ? 'bg-[#C5A059]/10 border-[#C5A059]' : 'bg-[var(--bg-subtle)] border-[var(--border-color)]'}`}>
-                                                            <span className={`text-[10px] font-black uppercase tracking-widest ${isEnabled ? 'text-[#C5A059]' : 'text-[var(--text-muted)]'}`}>{acc.name}</span>
-                                                            <div className={`w-10 h-5 rounded-full relative transition-colors ${isEnabled ? 'bg-[#C5A059]' : 'bg-gray-700'}`}>
-                                                                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isEnabled ? 'left-6' : 'left-1'}`}></div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
+                                        <div className="mt-10 space-y-8">
+                                            <h4 className="text-[11px] font-black text-[#C5A059] uppercase tracking-[0.2em] border-b border-[#C5A059]/20 pb-3">{T.admin_acc}</h4>
+                                            
+                                            {['Glass', 'Ventilation', 'Handles', 'Colors'].map(category => (
+                                                <div key={category} className="space-y-4">
+                                                    <h5 className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest opacity-50">{category}</h5>
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-10 gap-3">
+                                                        {state.accessories.filter(a => a.category === category).map(acc => {
+                                                            const isChecked = state.profileAccessoryMap[profile.name] ? state.profileAccessoryMap[profile.name].includes(acc.id) : true;
+                                                            return (
+                                                                <div 
+                                                                    key={acc.id} 
+                                                                    onClick={() => toggleAccessoryInProfile(profile.name, acc.id)} 
+                                                                    className={`cursor-pointer p-3 rounded-lg border transition-all flex flex-col items-center gap-3 ${isChecked ? 'bg-[#C5A059]/10 border-[#C5A059] text-[#C5A059]' : 'bg-[var(--bg-subtle)] border-[var(--border-color)] text-[var(--text-muted)] opacity-60 hover:opacity-100'}`}
+                                                                >
+                                                                    {acc.imageSrc && (
+                                                                        <div className="w-full h-12 flex items-center justify-center bg-black/20 rounded-md p-1">
+                                                                            <img src={acc.imageSrc} alt={acc.name} className="max-h-full object-contain" />
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${isChecked ? 'bg-[#C5A059] border-[#C5A059]' : 'border-[var(--border-color)]'}`}>
+                                                                            {isChecked && <Check size={10} className="text-black" strokeWidth={4} />}
+                                                                        </div>
+                                                                        <span className="text-[8px] font-black uppercase tracking-tight truncate max-w-[70px]">{acc.name}</span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                     

@@ -16,6 +16,7 @@ export interface Accessory {
     id: string;
     name: string;
     category: string;
+    imageSrc?: string;
 }
 
 export interface FormEntry {
@@ -25,8 +26,10 @@ export interface FormEntry {
     width: number;
     height: number;
     quantity: number;
+    glassPanes: string;
     glassType: string;
     ventilation: string;
+    handle: string;
     colorOut: string;
     colorIn: string;
 }
@@ -44,6 +47,7 @@ export interface AppState {
     products: Product[];
     accessories: Accessory[];
     profileProductMap: Record<string, string[]>;
+    profileAccessoryMap: Record<string, string[]>;
     disabledProfiles: string[];
     enabledAccessories: string[];
     formEntries: FormEntry[];

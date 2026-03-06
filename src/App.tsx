@@ -6,7 +6,8 @@ import { supabase } from './supabaseClient';
 import { GoogleGenAI } from '@google/genai';
 import { 
     Settings, ShieldAlert, Sun, Moon, Info, Trash2, Check, 
-    Upload, Download, X, ChevronRight, CheckCircle2, AlertCircle
+    Upload, Download, X, ChevronRight, CheckCircle2, AlertCircle,
+    ShieldCheck, Lock, Waves, VolumeX, Sparkles
 } from 'lucide-react';
 import AdminPanel from './components/AdminPanel';
 
@@ -28,6 +29,7 @@ export default function App() {
         products: PRODUCTS,
         accessories: ACCESSORIES,
         profileProductMap: {},
+        profileAccessoryMap: {},
         disabledProfiles: [],
         enabledAccessories: [],
         formEntries: [],
@@ -58,11 +60,11 @@ export default function App() {
     }, [state.theme]);
 
     useEffect(() => {
-        const { profiles, products, accessories, profileProductMap, disabledProfiles, enabledAccessories, formEntries, lastSelectedProfileName } = state;
+        const { profiles, products, accessories, profileProductMap, profileAccessoryMap, disabledProfiles, enabledAccessories, formEntries, lastSelectedProfileName } = state;
         localStorage.setItem('offert_app_data_v1', JSON.stringify({
-            profiles, products, accessories, profileProductMap, disabledProfiles, enabledAccessories, formEntries, lastSelectedProfileName
+            profiles, products, accessories, profileProductMap, profileAccessoryMap, disabledProfiles, enabledAccessories, formEntries, lastSelectedProfileName
         }));
-    }, [state.profiles, state.products, state.accessories, state.profileProductMap, state.disabledProfiles, state.enabledAccessories, state.formEntries, state.lastSelectedProfileName]);
+    }, [state.profiles, state.products, state.accessories, state.profileProductMap, state.profileAccessoryMap, state.disabledProfiles, state.enabledAccessories, state.formEntries, state.lastSelectedProfileName]);
 
     // --- HANDLERS ---
     const updateState = (updates: Partial<AppState>) => {
@@ -129,7 +131,15 @@ export default function App() {
             return;
         }
         const product = state.products.find(p => p.name === productName);
-        if (product) {
+        if (product && state.selectedProfile) {
+            const profileName = state.selectedProfile.name;
+            const allowedAccs = state.profileAccessoryMap[profileName];
+            
+            const getFirstValid = (category: string, fallback: string) => {
+                const filtered = state.accessories.filter(a => a.category === category && (!allowedAccs || allowedAccs.includes(a.id)));
+                return filtered.length > 0 ? filtered[0].id : fallback;
+            };
+
             updateState({
                 selectedProduct: product,
                 pendingEntry: {
@@ -139,10 +149,12 @@ export default function App() {
                     width: 1000,
                     height: 1200,
                     quantity: 1,
-                    glassType: '3-glas',
-                    ventilation: 'utan',
-                    colorOut: 'Biały',
-                    colorIn: 'Biały'
+                    glassPanes: getFirstValid('Glass', 'glass_3'),
+                    glassType: 'standard',
+                    ventilation: getFirstValid('Ventilation', 'vent_none'),
+                    handle: getFirstValid('Handles', 'handle_white'),
+                    colorOut: getFirstValid('Colors', 'color_white'),
+                    colorIn: getFirstValid('Colors', 'color_white')
                 }
             });
             scrollToSection('step-03');
@@ -162,13 +174,14 @@ export default function App() {
 
     const confirmEntry = () => {
         if (state.pendingEntry) {
+            const currentProfile = state.pendingEntry.profile;
             updateState({
                 formEntries: [...state.formEntries, state.pendingEntry],
-                selectedProfile: null,
+                selectedProfile: currentProfile,
                 selectedProduct: null,
                 pendingEntry: null
             });
-            scrollToSection('step-01');
+            scrollToSection('step-02');
         }
     };
 
@@ -295,9 +308,9 @@ export default function App() {
                                                 <div className="w-full md:w-2/3 space-y-6">
                                                     <div>
                                                         <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-widest mb-2">{profile.name}</h3>
-                                                        <p className="text-[10px] text-[#C5A059] font-bold tracking-[0.3em] uppercase">{profile.type}</p>
+                                                        <p className="text-xs text-[#C5A059] font-bold tracking-[0.3em] uppercase">{profile.type}</p>
                                                     </div>
-                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[10px] font-mono">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm font-mono">
                                                         <div className="spec-item"><span className="text-[var(--text-muted)] block mb-1">Uw</span>{profile.specs.Uw}</div>
                                                         <div className="spec-item"><span className="text-[var(--text-muted)] block mb-1">dB</span>{profile.specs.dB}</div>
                                                         <div className="spec-item"><span className="text-[var(--text-muted)] block mb-1">Chambers</span>{profile.specs.chambers}</div>
@@ -329,30 +342,29 @@ export default function App() {
                                 )}
                             </div>
                             
-                            {['Okna', 'Drzwi', 'Suwanki'].map(cat => {
+                            {['Okna', 'Drzwi', 'terrassystem'].map(cat => {
                                 const catProducts = state.products.filter(p => p.category === cat);
                                 if (catProducts.length === 0) return null;
                                 
                                 return (
                                     <div key={cat} className="space-y-6 mb-12">
                                         <h3 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.3em] border-b border-[var(--border-color)] pb-2">
-                                            {cat === 'Okna' ? T.cat_okna : cat === 'Drzwi' ? T.cat_drzwi : T.cat_suwanki}
+                                            {cat === 'Okna' ? T.cat_okna : cat === 'Drzwi' ? T.cat_drzwi : T.cat_terrassystem}
                                         </h3>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-                                            {catProducts.map(product => {
-                                                const isAvailable = !state.selectedProfile || !state.profileProductMap[state.selectedProfile.name] || state.profileProductMap[state.selectedProfile.name].includes(product.name);
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                                            {catProducts.filter(product => !state.selectedProfile || !state.profileProductMap[state.selectedProfile.name] || state.profileProductMap[state.selectedProfile.name].includes(product.name)).map(product => {
                                                 const isSelected = state.selectedProduct?.name === product.name;
                                                 
                                                 return (
                                                     <div 
                                                         key={product.name}
-                                                        onClick={() => isAvailable && addProduct(product.name)}
-                                                        className={`tech-card cursor-pointer flex flex-col items-center text-center p-4 group ${isSelected ? 'selected' : ''} ${!isAvailable ? 'opacity-20 grayscale cursor-not-allowed' : ''}`}
+                                                        onClick={() => addProduct(product.name)}
+                                                        className={`tech-card cursor-pointer flex flex-col items-center text-center p-6 group ${isSelected ? 'selected' : ''}`}
                                                     >
-                                                        <div className="h-20 w-full mb-4 flex items-center justify-center">
+                                                        <div className="h-32 w-full mb-6 flex items-center justify-center">
                                                             <img src={product.imageSrc} alt={product.name} className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500" />
                                                         </div>
-                                                        <p className="text-[10px] font-black uppercase tracking-widest">{product.name}</p>
+                                                        <p className="text-xs font-black uppercase tracking-widest">{product.name}</p>
                                                     </div>
                                                 );
                                             })}
@@ -372,69 +384,175 @@ export default function App() {
                             </div>
                             
                             {state.pendingEntry && (
-                                <div className="tech-card flex flex-col xl:flex-row items-start gap-10 p-6 sm:p-10 border-2 border-[#C5A059] overflow-hidden">
-                                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 w-full xl:w-1/3 text-center sm:text-left border-b xl:border-b-0 xl:border-r border-[var(--border-color)] pb-8 xl:pb-0 xl:pr-10">
-                                        <div className="w-24 h-24 sm:w-32 sm:h-32 bg-[var(--bg-subtle)] p-4 rounded-2xl border border-[var(--border-color)] flex-shrink-0 flex items-center justify-center shadow-inner">
-                                            <img src={state.pendingEntry.product.imageSrc} className="w-full h-full object-contain drop-shadow-2xl" />
+                                <div className="tech-card border-2 border-[#C5A059] overflow-hidden">
+                                    <div className="flex flex-col xl:flex-row items-start gap-10 p-6 sm:p-10">
+                                        <div className="flex flex-col items-start gap-4 w-full xl:w-1/3 border-b xl:border-b-0 xl:border-r border-[var(--border-color)] pb-8 xl:pb-0 xl:pr-10">
+                                            <p className="text-xs text-[#C5A059] font-bold uppercase tracking-[0.3em]">{state.pendingEntry.profile.name}</p>
+                                            <div className="w-24 h-24 sm:w-32 sm:h-32 bg-[var(--bg-subtle)] p-4 rounded-2xl border border-[var(--border-color)] flex items-center justify-center shadow-inner">
+                                                <img src={state.pendingEntry.product.imageSrc} className="w-full h-full object-contain drop-shadow-2xl" />
+                                            </div>
+                                            <p className="text-sm sm:text-base font-black text-[var(--text-main)] uppercase tracking-tighter leading-none">{state.pendingEntry.product.name}</p>
                                         </div>
-                                        <div className="flex flex-col justify-center h-full">
-                                            <p className="text-xs text-[#C5A059] font-bold uppercase tracking-[0.3em] mb-2">{state.pendingEntry.profile.name}</p>
-                                            <p className="text-xl sm:text-2xl font-black text-[var(--text-main)] uppercase tracking-tighter leading-none">{state.pendingEntry.product.name}</p>
+                                        
+                                        <div className="flex-grow w-full space-y-12">
+                                            {/* 1. DIMENSIONS & QUANTITY */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                                <div className="flex flex-col">
+                                                    <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.width}</label>
+                                                    <input type="number" value={state.pendingEntry.width} onChange={(e) => updatePendingEntry('width', e.target.value)} className="tech-input text-lg font-mono py-3 px-4" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.height}</label>
+                                                    <input type="number" value={state.pendingEntry.height} onChange={(e) => updatePendingEntry('height', e.target.value)} className="tech-input text-lg font-mono py-3 px-4" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.quantity}</label>
+                                                    <input type="number" value={state.pendingEntry.quantity} onChange={(e) => updatePendingEntry('quantity', e.target.value)} className="tech-input text-lg font-mono py-3 px-4" />
+                                                </div>
+                                            </div>
+
+                                            {/* 2. GLASS TYPE */}
+                                            <div className="space-y-8">
+                                                <div className="flex flex-col gap-8">
+                                                    {/* 2/3 PANE TOGGLE */}
+                                                    <div className="space-y-4">
+                                                        <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block">Pakiet szybowy</label>
+                                                        <div className="flex bg-[var(--bg-subtle)] p-1 rounded-xl border border-[var(--border-color)] w-fit">
+                                                            {['glass_2', 'glass_3'].map(id => {
+                                                                const acc = state.accessories.find(a => a.id === id);
+                                                                if (!acc) return null;
+                                                                const isActive = state.pendingEntry!.glassPanes === id;
+                                                                return (
+                                                                    <button
+                                                                        key={id}
+                                                                        onClick={() => updatePendingEntry('glassPanes', id)}
+                                                                        className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${isActive ? 'bg-[#C5A059] text-black shadow-lg' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                                                                    >
+                                                                        {acc.name}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* SPECIAL GLASS TYPES */}
+                                                    <div className="space-y-4">
+                                                        <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block">Typ szkła</label>
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                                                            {[
+                                                                { id: 'standard', name: 'Standard', icon: Check },
+                                                                { id: 'glass_tempered', name: 'Hartowana', icon: ShieldCheck },
+                                                                { id: 'glass_security', name: 'Antywłamaniowa', icon: Lock },
+                                                                { id: 'glass_frosted', name: 'Mleczna', icon: Waves },
+                                                                { id: 'glass_acoustic', name: 'Dźwiękochłonna', icon: VolumeX },
+                                                                { id: 'glass_solar', name: 'Przeciwsłoneczna', icon: Sun }
+                                                            ].map(item => {
+                                                                const isActive = state.pendingEntry!.glassType === item.id;
+                                                                const Icon = item.icon;
+                                                                return (
+                                                                    <div 
+                                                                        key={item.id} 
+                                                                        onClick={() => updatePendingEntry('glassType', item.id)}
+                                                                        className={`cursor-pointer p-4 rounded-xl border transition-all flex flex-col items-center gap-3 text-center min-h-[100px] justify-center ${isActive ? 'bg-[#C5A059]/20 border-[#C5A059] shadow-[0_0_15px_rgba(197,160,89,0.1)]' : 'bg-[var(--bg-subtle)] border-[var(--border-color)] opacity-60 hover:opacity-100'}`}
+                                                                    >
+                                                                        <div className="w-10 h-10 flex items-center justify-center bg-black/20 rounded-lg shrink-0">
+                                                                            <Icon size={20} className={isActive ? 'text-[#C5A059]' : 'text-[var(--text-muted)]'} />
+                                                                        </div>
+                                                                        <span className="text-[8px] font-black uppercase tracking-tight leading-[1.1] break-words w-full">{item.name}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* 3. VENTILATION */}
+                                            <div className="space-y-4">
+                                                <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{T.ventilation}</label>
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                                    {state.accessories.filter(a => a.category === 'Ventilation' && (!state.profileAccessoryMap[state.pendingEntry!.profile.name] || state.profileAccessoryMap[state.pendingEntry!.profile.name].includes(a.id))).map(acc => {
+                                                        const isActive = state.pendingEntry!.ventilation === acc.id;
+                                                        const isNone = acc.id === 'vent_none';
+                                                        
+                                                        return (
+                                                            <div 
+                                                                key={acc.id} 
+                                                                onClick={() => updatePendingEntry('ventilation', acc.id)}
+                                                                className={`cursor-pointer p-4 rounded-xl border transition-all flex flex-col items-center gap-4 text-center min-h-[120px] justify-center ${isActive ? 'bg-[#C5A059]/20 border-[#C5A059] shadow-[0_0_15_rgba(197,160,89,0.1)]' : 'bg-[var(--bg-subtle)] border-[var(--border-color)] opacity-60 hover:opacity-100'}`}
+                                                            >
+                                                                <div className="w-full h-14 flex items-center justify-center bg-black/20 rounded-lg p-1 shrink-0">
+                                                                    {isNone ? (
+                                                                        <X size={24} className={isActive ? 'text-[#C5A059]' : 'text-[var(--text-muted)]'} />
+                                                                    ) : (
+                                                                        <img src={acc.imageSrc} alt={acc.name} className="max-h-full object-contain" />
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-[9px] font-black uppercase tracking-tight leading-[1.1] break-words w-full">{acc.name}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* 4. HANDLES */}
+                                            <div className="space-y-4">
+                                                <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{T.handle}</label>
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                                                    {state.accessories.filter(a => a.category === 'Handles' && (!state.profileAccessoryMap[state.pendingEntry!.profile.name] || state.profileAccessoryMap[state.pendingEntry!.profile.name].includes(a.id))).map(acc => (
+                                                        <div 
+                                                            key={acc.id} 
+                                                            onClick={() => updatePendingEntry('handle', acc.id)}
+                                                            className={`cursor-pointer p-4 rounded-xl border transition-all flex flex-col items-center gap-4 text-center min-h-[120px] justify-center ${state.pendingEntry!.handle === acc.id ? 'bg-[#C5A059]/20 border-[#C5A059] shadow-[0_0_15_rgba(197,160,89,0.1)]' : 'bg-[var(--bg-subtle)] border-[var(--border-color)] opacity-60 hover:opacity-100'}`}
+                                                        >
+                                                            <div className="w-full h-14 flex items-center justify-center bg-black/20 rounded-lg p-1 shrink-0">
+                                                                <img src={acc.imageSrc} alt={acc.name} className="max-h-full object-contain" />
+                                                            </div>
+                                                            <span className="text-[9px] font-black uppercase tracking-tight leading-[1.1] break-words w-full">{acc.name}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* 5. COLORS */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                                <div className="space-y-4">
+                                                    <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{T.colorIn}</label>
+                                                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                                                        {state.accessories.filter(a => a.category === 'Colors' && (!state.profileAccessoryMap[state.pendingEntry!.profile.name] || state.profileAccessoryMap[state.pendingEntry!.profile.name].includes(a.id))).map(acc => (
+                                                            <div 
+                                                                key={acc.id} 
+                                                                onClick={() => updatePendingEntry('colorIn', acc.id)}
+                                                                className={`cursor-pointer p-2 rounded-lg border transition-all flex flex-col items-center gap-2 text-center ${state.pendingEntry!.colorIn === acc.id ? 'bg-[#C5A059]/20 border-[#C5A059]' : 'bg-[var(--bg-subtle)] border-[var(--border-color)] opacity-60 hover:opacity-100'}`}
+                                                            >
+                                                                <div className="w-full h-8 rounded-md border border-white/10" style={{ backgroundColor: acc.id === 'color_white' ? '#FFFFFF' : acc.id === 'color_anthracite' ? '#3B3E42' : acc.id === 'color_oak' ? '#A67B5B' : acc.id === 'color_walnut' ? '#5D4037' : acc.id === 'color_winchester' ? '#C19A6B' : '#808080' }}></div>
+                                                                <span className="text-[7px] font-black uppercase tracking-tighter truncate w-full">{acc.name}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{T.colorOut}</label>
+                                                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                                                        {state.accessories.filter(a => a.category === 'Colors' && (!state.profileAccessoryMap[state.pendingEntry!.profile.name] || state.profileAccessoryMap[state.pendingEntry!.profile.name].includes(a.id))).map(acc => (
+                                                            <div 
+                                                                key={acc.id} 
+                                                                onClick={() => updatePendingEntry('colorOut', acc.id)}
+                                                                className={`cursor-pointer p-2 rounded-lg border transition-all flex flex-col items-center gap-2 text-center ${state.pendingEntry!.colorOut === acc.id ? 'bg-[#C5A059]/20 border-[#C5A059]' : 'bg-[var(--bg-subtle)] border-[var(--border-color)] opacity-60 hover:opacity-100'}`}
+                                                            >
+                                                                <div className="w-full h-8 rounded-md border border-white/10" style={{ backgroundColor: acc.id === 'color_white' ? '#FFFFFF' : acc.id === 'color_anthracite' ? '#3B3E42' : acc.id === 'color_oak' ? '#A67B5B' : acc.id === 'color_walnut' ? '#5D4037' : acc.id === 'color_winchester' ? '#C19A6B' : '#808080' }}></div>
+                                                                <span className="text-[7px] font-black uppercase tracking-tighter truncate w-full">{acc.name}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     
-                                    <div className="flex-grow w-full grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
-                                        <div className="flex flex-col">
-                                            <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.width}</label>
-                                            <input type="number" value={state.pendingEntry.width} onChange={(e) => updatePendingEntry('width', e.target.value)} className="tech-input text-lg font-mono py-3 px-4" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.height}</label>
-                                            <input type="number" value={state.pendingEntry.height} onChange={(e) => updatePendingEntry('height', e.target.value)} className="tech-input text-lg font-mono py-3 px-4" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.quantity}</label>
-                                            <input type="number" value={state.pendingEntry.quantity} onChange={(e) => updatePendingEntry('quantity', e.target.value)} className="tech-input text-lg font-mono py-3 px-4" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.glassType}</label>
-                                            <select value={state.pendingEntry.glassType} onChange={(e) => updatePendingEntry('glassType', e.target.value)} className="tech-input text-[12px] bg-transparent font-bold py-3 px-4">
-                                                <option value="3-glas">3-glas</option>
-                                                <option value="2-glas">2-glas</option>
-                                            </select>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.ventilation}</label>
-                                            <select value={state.pendingEntry.ventilation} onChange={(e) => updatePendingEntry('ventilation', e.target.value)} className="tech-input text-[12px] bg-transparent font-bold py-3 px-4">
-                                                <option value="utan">{T.vent_none}</option>
-                                                <option value="med">{T.vent_with}</option>
-                                            </select>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.colorOut}</label>
-                                            <select value={state.pendingEntry.colorOut} onChange={(e) => updatePendingEntry('colorOut', e.target.value)} className="tech-input text-[12px] bg-transparent font-bold py-3 px-4">
-                                                <option value="Biały">Biały (Standard)</option>
-                                                <option value="Antracyt">Antracyt</option>
-                                                <option value="Złoty Dąb">Złoty Dąb</option>
-                                                <option value="Orzech">Orzech</option>
-                                                <option value="Inny">Inny (Opisz w uwagach)</option>
-                                            </select>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.colorIn}</label>
-                                            <select value={state.pendingEntry.colorIn} onChange={(e) => updatePendingEntry('colorIn', e.target.value)} className="tech-input text-[12px] bg-transparent font-bold py-3 px-4">
-                                                <option value="Biały">Biały (Standard)</option>
-                                                <option value="Antracyt">Antracyt</option>
-                                                <option value="Złoty Dąb">Złoty Dąb</option>
-                                                <option value="Orzech">Orzech</option>
-                                                <option value="Inny">Inny (Opisz w uwagach)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="w-full xl:w-auto mt-6 xl:mt-0 flex justify-end xl:self-end">
-                                        <button onClick={confirmEntry} className="btn-gold w-full xl:w-auto py-4 px-10 rounded-xl text-[10px] flex items-center justify-center gap-3">
-                                            <Check size={16} />
+                                    <div className="p-6 sm:p-10 pt-0 flex justify-center border-t border-[var(--border-color)] bg-[#C5A059]/5">
+                                        <button onClick={confirmEntry} className="btn-gold w-full sm:w-auto py-5 px-16 rounded-xl text-[11px] flex items-center justify-center gap-4 shadow-[0_0_30px_rgba(197,160,89,0.2)]">
+                                            <Check size={18} />
                                             {T.btn_confirm}
                                         </button>
                                     </div>
@@ -462,8 +580,10 @@ export default function App() {
                                                 <p className="text-[10px] text-[var(--text-main)] font-bold opacity-50 uppercase">{e.profile.name}</p>
                                                 <p className="text-[10px] text-[#C5A059] font-mono mt-1">{e.width} x {e.height}mm | {e.quantity}st</p>
                                                 <div className="flex flex-wrap gap-2 mt-1">
-                                                    <span className="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">OUT: {e.colorOut}</span>
-                                                    <span className="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">IN: {e.colorIn}</span>
+                                                    <span className="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">OUT: {state.accessories.find(a => a.id === e.colorOut)?.name || e.colorOut}</span>
+                                                    <span className="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">IN: {state.accessories.find(a => a.id === e.colorIn)?.name || e.colorIn}</span>
+                                                    <span className="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">H: {state.accessories.find(a => a.id === e.handle)?.name || e.handle}</span>
+                                                    <span className="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">G: {state.accessories.find(a => a.id === e.glassPanes)?.name?.split(' ')[0] || e.glassPanes} | {e.glassType}</span>
                                                 </div>
                                             </div>
                                             <button onClick={() => removeEntry(e.id)} className="text-[var(--text-muted)] hover:text-red-500 transition-colors">
