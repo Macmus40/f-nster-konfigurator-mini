@@ -208,8 +208,13 @@ export default async function handler(req: any, res: any) {
     });
 
     res.json({ success: true });
-  } catch (error) {
-    console.error("Email error:", error);
-    res.status(500).json({ error: "Failed to send email" });
+  } catch (error: any) {
+    console.error("Email error details:", {
+      message: error.message,
+      stack: error.stack,
+      hasGmailUser: !!process.env.GMAIL_USER,
+      hasGmailPass: !!process.env.GMAIL_APP_PASSWORD
+    });
+    res.status(500).json({ error: "Failed to send email", details: error.message });
   }
 }
