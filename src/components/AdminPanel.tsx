@@ -473,16 +473,6 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Kolejność (Order)</label>
-                                        <input 
-                                            type="number" 
-                                            value={productForm.sort_order || 0}
-                                            onChange={e => setProductForm({...productForm, sort_order: parseInt(e.target.value) || 0})}
-                                            className="tech-input" 
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
                                         <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{T.admin_image}</label>
                                         <div className="flex gap-2">
                                             <input 
