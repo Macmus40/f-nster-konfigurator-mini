@@ -96,9 +96,9 @@ export default function App() {
         try {
             // Pobieramy wszystko równolegle dla szybkości
             const [pRes, prRes, aRes, mRes, amRes, sRes] = await Promise.all([
-                supabase.from('profiles').select('*'),
-                supabase.from('products').select('*'),
-                supabase.from('accessories').select('*'),
+                supabase.from('profiles').select('*').order('sort_order', { ascending: true }),
+                supabase.from('products').select('*').order('sort_order', { ascending: true }),
+                supabase.from('accessories').select('*').order('sort_order', { ascending: true }),
                 supabase.from('profile_product_map').select('*'),
                 supabase.from('profile_accessory_map').select('*'),
                 supabase.from('app_settings').select('*').single()
@@ -110,9 +110,9 @@ export default function App() {
             
             const updates: Partial<AppState> = { supabaseStatus: 'connected' };
             
-            if (pRes.data && pRes.data.length > 0) updates.profiles = pRes.data;
-            if (prRes.data && prRes.data.length > 0) updates.products = prRes.data;
-            if (aRes.data && aRes.data.length > 0) updates.accessories = aRes.data;
+            updates.profiles = pRes.data || [];
+            updates.products = prRes.data || [];
+            updates.accessories = aRes.data || [];
             
             if (!mRes.error && mRes.data) {
                 const newMap: Record<string, string[]> = {};
@@ -176,7 +176,36 @@ export default function App() {
         updateState({ supabaseStatus: 'loading' });
 
         try {
-            // 1. Upsert profiles, products, accessories
+            // 1. Clean up deleted items first (to avoid "boomerang" effect)
+            const profileNames = state.profiles.map(p => p.name);
+            const productNames = state.products.map(p => p.name);
+            const accessoryIds = state.accessories.map(a => a.id);
+
+            // Delete profiles not in current state
+            if (profileNames.length > 0) {
+                const { error: d1 } = await supabase.from('profiles').delete().filter('name', 'not.in', `(${profileNames.map(n => `"${n}"`).join(',')})`);
+                if (d1) console.error("Delete profiles error:", d1);
+            } else {
+                await supabase.from('profiles').delete().neq('name', ''); 
+            }
+
+            // Delete products not in current state
+            if (productNames.length > 0) {
+                const { error: d2 } = await supabase.from('products').delete().filter('name', 'not.in', `(${productNames.map(n => `"${n}"`).join(',')})`);
+                if (d2) console.error("Delete products error:", d2);
+            } else {
+                await supabase.from('products').delete().neq('name', '');
+            }
+
+            // Delete accessories not in current state
+            if (accessoryIds.length > 0) {
+                const { error: d3 } = await supabase.from('accessories').delete().filter('id', 'not.in', `(${accessoryIds.map(id => `"${id}"`).join(',')})`);
+                if (d3) console.error("Delete accessories error:", d3);
+            } else {
+                await supabase.from('accessories').delete().neq('id', '');
+            }
+
+            // 2. Upsert current state
             const { error: pErr } = await supabase.from('profiles').upsert(state.profiles);
             if (pErr) throw pErr;
             
@@ -186,35 +215,44 @@ export default function App() {
             const { error: aErr } = await supabase.from('accessories').upsert(state.accessories);
             if (aErr) throw aErr;
 
-            // 2. Update Product Mappings
-            const profileNames = state.profiles.map(p => p.name);
+            // 3. Update Product Mappings
+            // We already deleted profiles not in state, now we clean up mappings for remaining profiles
             await supabase.from('profile_product_map').delete().in('profile_name', profileNames);
             
             const mappingRows: any[] = [];
             Object.entries(state.profileProductMap).forEach(([profileName, productNames]) => {
-                productNames.forEach(productName => {
-                    mappingRows.push({ profile_name: profileName, product_name: productName });
-                });
+                // Only map if both profile and product still exist in state
+                if (profileNames.includes(profileName)) {
+                    productNames.forEach(productName => {
+                        if (state.products.some(p => p.name === productName)) {
+                            mappingRows.push({ profile_name: profileName, product_name: productName });
+                        }
+                    });
+                }
             });
             if (mappingRows.length > 0) {
                 const { error: mErr } = await supabase.from('profile_product_map').insert(mappingRows);
                 if (mErr) throw mErr;
             }
 
-            // 3. Update Accessory Mappings
+            // 4. Update Accessory Mappings
             await supabase.from('profile_accessory_map').delete().in('profile_name', profileNames);
             const accMappingRows: any[] = [];
             Object.entries(state.profileAccessoryMap).forEach(([profileName, accIds]) => {
-                accIds.forEach(accId => {
-                    accMappingRows.push({ profile_name: profileName, accessory_id: accId });
-                });
+                if (profileNames.includes(profileName)) {
+                    accIds.forEach(accId => {
+                        if (state.accessories.some(a => a.id === accId)) {
+                            accMappingRows.push({ profile_name: profileName, accessory_id: accId });
+                        }
+                    });
+                }
             });
             if (accMappingRows.length > 0) {
                 const { error: amErr } = await supabase.from('profile_accessory_map').insert(accMappingRows);
                 if (amErr) throw amErr;
             }
 
-            // 4. Update Global Settings (Disabled Profiles)
+            // 5. Update Global Settings (Disabled Profiles)
             const { error: sErr } = await supabase.from('app_settings').upsert({ 
                 id: 1, 
                 disabled_profiles: state.disabledProfiles 

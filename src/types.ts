@@ -4,6 +4,7 @@ export interface Profile {
     specs: { Uw: string; dB: string; chambers: string; depth: string };
     imageSrc: string;
     sectionImageSrc?: string;
+    sort_order?: number;
     description: { sv: string; da: string; de: string; en: string };
 }
 
@@ -11,6 +12,7 @@ export interface Product {
     name: string;
     category: string;
     imageSrc: string;
+    sort_order?: number;
 }
 
 export interface Accessory {
@@ -18,6 +20,7 @@ export interface Accessory {
     name: { sv: string; da: string; de: string; en: string };
     category: string;
     imageSrc?: string;
+    sort_order?: number;
 }
 
 export interface FormEntry {

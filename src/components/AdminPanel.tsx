@@ -15,11 +15,13 @@ interface AdminPanelProps {
 export default function AdminPanel({ state, updateState, syncWithSupabase, persistToSupabase }: AdminPanelProps) {
     const T = TRANSLATIONS[state.currentLanguage];
     const [password, setPassword] = useState('');
-    const [activeTab, setActiveTab] = useState<'profiles' | 'products'>('profiles');
+    const [activeTab, setActiveTab] = useState<'profiles' | 'products' | 'accessories'>('profiles');
     const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
     const [isAddingProfile, setIsAddingProfile] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [isAddingProduct, setIsAddingProduct] = useState(false);
+    const [editingAccessory, setEditingAccessory] = useState<Accessory | null>(null);
+    const [isAddingAccessory, setIsAddingAccessory] = useState(false);
     
     const [profileForm, setProfileForm] = useState<Profile>({
         name: '',
@@ -33,6 +35,13 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
     const [productForm, setProductForm] = useState<Product>({
         name: '',
         category: 'Fönster',
+        imageSrc: ''
+    });
+
+    const [accessoryForm, setAccessoryForm] = useState<Accessory>({
+        id: '',
+        name: { sv: '', da: '', de: '', en: '' },
+        category: 'Colors',
         imageSrc: ''
     });
 
@@ -80,16 +89,20 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
         }
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'imageSrc' | 'sectionImageSrc' | 'productImage') => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'imageSrc' | 'sectionImageSrc' | 'productImage' | 'accessoryImage') => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const folder = field === 'productImage' ? 'PRODUCT' : 'PROFILE';
+        let folder = 'PROFILE';
+        if (field === 'productImage') folder = 'PRODUCT';
+        if (field === 'accessoryImage') folder = 'ACCESSORY';
         
         const url = await uploadImage(file, folder);
         if (url) {
             if (field === 'productImage') {
                 setProductForm(prev => ({ ...prev, imageSrc: url }));
+            } else if (field === 'accessoryImage') {
+                setAccessoryForm(prev => ({ ...prev, imageSrc: url }));
             } else {
                 setProfileForm(prev => ({ ...prev, [field]: url }));
             }
@@ -151,7 +164,8 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
         setProductForm({
             name: '',
             category: 'Fönster',
-            imageSrc: ''
+            imageSrc: '',
+            sort_order: 0
         });
         setIsAddingProduct(true);
         setEditingProduct(null);
@@ -187,10 +201,60 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
             newProducts.push(productForm);
         }
 
+        newProducts.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
         updateState({ products: newProducts });
         setIsAddingProduct(false);
         setEditingProduct(null);
         showMessage("Product saved successfully");
+    };
+
+    const handleAddAccessory = () => {
+        setAccessoryForm({
+            id: `acc_${Date.now()}`,
+            name: { sv: '', da: '', de: '', en: '' },
+            category: 'Colors',
+            imageSrc: '',
+            sort_order: 0
+        });
+        setIsAddingAccessory(true);
+        setEditingAccessory(null);
+    };
+
+    const handleEditAccessory = (acc: Accessory) => {
+        setAccessoryForm({ ...acc });
+        setEditingAccessory(acc);
+        setIsAddingAccessory(false);
+    };
+
+    const handleDeleteAccessory = (id: string) => {
+        const newAccessories = state.accessories.filter(a => a.id !== id);
+        updateState({ accessories: newAccessories });
+        showMessage(`Accessory deleted`);
+    };
+
+    const handleSaveAccessory = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!accessoryForm.id) {
+            showMessage("Accessory ID is required", "error");
+            return;
+        }
+
+        let newAccessories = [...state.accessories];
+        if (editingAccessory) {
+            newAccessories = newAccessories.map(a => a.id === editingAccessory.id ? accessoryForm : a);
+        } else {
+            if (newAccessories.find(a => a.id === accessoryForm.id)) {
+                showMessage("Accessory with this ID already exists", "error");
+                return;
+            }
+            newAccessories.push(accessoryForm);
+        }
+
+        newAccessories.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        updateState({ accessories: newAccessories });
+        setIsAddingAccessory(false);
+        setEditingAccessory(null);
+        showMessage("Accessory saved successfully");
     };
     const handleAddProfile = () => {
         setProfileForm({
@@ -199,6 +263,7 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
             specs: { Uw: '', dB: '', chambers: '', depth: '' },
             imageSrc: '',
             sectionImageSrc: '',
+            sort_order: 0,
             description: { sv: '', da: '', de: '', en: '' }
         });
         setIsAddingProfile(true);
@@ -231,6 +296,7 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
             newProfiles.push(profileForm);
         }
         
+        newProfiles.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
         updateState({ profiles: newProfiles });
         setIsAddingProfile(false);
         setEditingProfile(null);
@@ -282,6 +348,12 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
                                 >
                                     Products
                                 </button>
+                                <button 
+                                    onClick={() => setActiveTab('accessories')}
+                                    className={`text-[10px] font-black uppercase tracking-widest pb-2 border-b-2 transition-all ${activeTab === 'accessories' ? 'border-[#C5A059] text-[#C5A059]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}
+                                >
+                                    Accessories
+                                </button>
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -330,11 +402,11 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
                                 PUSH TO SUPABASE
                             </button>
                             <button 
-                                onClick={activeTab === 'profiles' ? handleAddProfile : handleAddProduct}
+                                onClick={activeTab === 'profiles' ? handleAddProfile : activeTab === 'products' ? handleAddProduct : handleAddAccessory}
                                 className="flex items-center gap-2 bg-[#C5A059] text-black px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#C5A059]/80 transition-all"
                             >
                                 <Plus size={16} />
-                                {activeTab === 'profiles' ? T.admin_add_profile : "ADD PRODUCT"}
+                                {activeTab === 'profiles' ? T.admin_add_profile : activeTab === 'products' ? "ADD PRODUCT" : "ADD ACCESSORY"}
                             </button>
                             <div className="flex items-center gap-3 pl-6 border-l border-[var(--border-color)]">
                                 <div className="text-right">
@@ -389,6 +461,26 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
                                             <option value="WOOD">WOOD</option>
                                             <option value="WOOD-ALU">WOOD-ALU</option>
                                         </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Kolejność (Order)</label>
+                                        <input 
+                                            type="number" 
+                                            value={profileForm.sort_order || 0}
+                                            onChange={e => setProfileForm({...profileForm, sort_order: parseInt(e.target.value) || 0})}
+                                            className="tech-input" 
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Kolejność (Order)</label>
+                                        <input 
+                                            type="number" 
+                                            value={productForm.sort_order || 0}
+                                            onChange={e => setProductForm({...productForm, sort_order: parseInt(e.target.value) || 0})}
+                                            className="tech-input" 
+                                            placeholder="0"
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{T.admin_image}</label>
@@ -598,7 +690,7 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
                             })}
                         </div>
                             </>
-                        ) : (
+                        ) : activeTab === 'products' ? (
                             <div className="space-y-12">
                                 {(isAddingProduct || editingProduct) && (
                                     <div className="mb-12 p-8 rounded-3xl border-2 border-[#C5A059] bg-[#C5A059]/5 animate-in slide-in-from-top duration-300">
@@ -632,6 +724,16 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
                                                     <option value="Dörrar">Dörrar</option>
                                                     <option value="Skjutdörrar">Skjutdörrar</option>
                                                 </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Kolejność (Order)</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={productForm.sort_order || 0}
+                                                    onChange={e => setProductForm({...productForm, sort_order: parseInt(e.target.value) || 0})}
+                                                    className="tech-input" 
+                                                    placeholder="0"
+                                                />
                                             </div>
                                             <div className="md:col-span-2 space-y-2">
                                                 <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Image URL</label>
@@ -692,6 +794,149 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
                                             <div className="text-center">
                                                 <p className="text-[10px] font-black text-[#C5A059] uppercase tracking-widest mb-1">{product.category}</p>
                                                 <h4 className="text-sm font-black uppercase tracking-widest">{product.name}</h4>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-12">
+                                {(isAddingAccessory || editingAccessory) && (
+                                    <div className="mb-12 p-8 rounded-3xl border-2 border-[#C5A059] bg-[#C5A059]/5 animate-in slide-in-from-top duration-300">
+                                        <div className="flex justify-between items-center mb-8">
+                                            <h3 className="text-lg font-black text-[#C5A059] uppercase tracking-widest">
+                                                {editingAccessory ? `EDIT ACCESSORY: ${editingAccessory.id}` : "ADD NEW ACCESSORY"}
+                                            </h3>
+                                            <button onClick={() => { setIsAddingAccessory(false); setEditingAccessory(null); }} className="text-[var(--text-muted)] hover:text-white">
+                                                <X size={24} />
+                                            </button>
+                                        </div>
+                                        <form onSubmit={handleSaveAccessory} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Accessory ID</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={accessoryForm.id}
+                                                    onChange={e => setAccessoryForm({...accessoryForm, id: e.target.value})}
+                                                    className="tech-input" 
+                                                    required 
+                                                    disabled={!!editingAccessory}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Category</label>
+                                                <select 
+                                                    value={accessoryForm.category}
+                                                    onChange={e => setAccessoryForm({...accessoryForm, category: e.target.value as any})}
+                                                    className="tech-input"
+                                                >
+                                                    <option value="Colors">Colors</option>
+                                                    <option value="Handles">Handles</option>
+                                                    <option value="Glass">Glass</option>
+                                                    <option value="Ventilation">Ventilation</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Kolejność (Order)</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={accessoryForm.sort_order || 0}
+                                                    onChange={e => setAccessoryForm({...accessoryForm, sort_order: parseInt(e.target.value) || 0})}
+                                                    className="tech-input" 
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                            <div className="md:col-span-2 space-y-4">
+                                                <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Names (Translations)</label>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] text-[var(--text-muted)] uppercase">SV</label>
+                                                        <input type="text" value={accessoryForm.name.sv} onChange={e => setAccessoryForm({...accessoryForm, name: {...accessoryForm.name, sv: e.target.value}})} className="tech-input" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] text-[var(--text-muted)] uppercase">DA</label>
+                                                        <input type="text" value={accessoryForm.name.da} onChange={e => setAccessoryForm({...accessoryForm, name: {...accessoryForm.name, da: e.target.value}})} className="tech-input" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] text-[var(--text-muted)] uppercase">DE</label>
+                                                        <input type="text" value={accessoryForm.name.de} onChange={e => setAccessoryForm({...accessoryForm, name: {...accessoryForm.name, de: e.target.value}})} className="tech-input" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] text-[var(--text-muted)] uppercase">EN</label>
+                                                        <input type="text" value={accessoryForm.name.en} onChange={e => setAccessoryForm({...accessoryForm, name: {...accessoryForm.name, en: e.target.value}})} className="tech-input" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="md:col-span-2 space-y-2">
+                                                <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Image URL</label>
+                                                <div className="flex gap-2">
+                                                    <input 
+                                                        type="text" 
+                                                        value={accessoryForm.imageSrc || ''}
+                                                        onChange={e => setAccessoryForm({...accessoryForm, imageSrc: e.target.value})}
+                                                        className="tech-input flex-grow" 
+                                                        placeholder="https://..."
+                                                    />
+                                                    <label className="cursor-pointer bg-white/5 border border-white/10 hover:bg-white/10 p-3 rounded-xl transition-all flex items-center justify-center min-w-[48px]">
+                                                        {isUploading === 'ACCESSORY' ? <Loader2 size={18} className="animate-spin text-[#C5A059]" /> : <Upload size={18} className="text-[#C5A059]" />}
+                                                        <input type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'accessoryImage')} disabled={!!isUploading} />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div className="md:col-span-2 flex justify-end gap-4 mt-4">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => { setIsAddingAccessory(false); setEditingAccessory(null); }}
+                                                    className="px-8 py-3 rounded-xl border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all"
+                                                >
+                                                    CANCEL
+                                                </button>
+                                                <button 
+                                                    type="submit"
+                                                    className="btn-gold px-12 py-3 rounded-xl text-[10px] flex items-center gap-2"
+                                                >
+                                                    <Save size={16} />
+                                                    SAVE ACCESSORY
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                <div className="space-y-8">
+                                    {['Colors', 'Handles', 'Glass', 'Ventilation'].map(cat => (
+                                        <div key={cat} className="space-y-4">
+                                            <h3 className="text-xs font-black text-[#C5A059] tracking-[0.3em] uppercase border-b border-[#C5A059]/20 pb-2">{cat}</h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                                {state.accessories.filter(a => a.category === cat).map(acc => (
+                                                    <div key={acc.id} className="bg-white/5 border border-white/10 p-4 rounded-xl flex flex-col gap-3 relative group">
+                                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                            <button 
+                                                                onClick={() => handleEditAccessory(acc)}
+                                                                className="p-1.5 rounded-lg bg-black/40 text-[#C5A059] hover:bg-[#C5A059] hover:text-black transition-all"
+                                                            >
+                                                                <Edit2 size={12} />
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleDeleteAccessory(acc.id)}
+                                                                className="p-1.5 rounded-lg bg-black/40 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        </div>
+                                                        <div className="aspect-square bg-black/20 rounded-lg flex items-center justify-center p-2">
+                                                            {acc.imageSrc ? (
+                                                                <img src={acc.imageSrc} alt={acc.name.en} className="max-h-full object-contain" referrerPolicy="no-referrer" />
+                                                            ) : (
+                                                                <div className="text-[8px] text-[var(--text-muted)] uppercase">No Image</div>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <h4 className="text-[10px] font-black uppercase tracking-widest truncate">{acc.name[state.currentLanguage] || acc.name.en}</h4>
+                                                            <p className="text-[8px] text-[var(--text-muted)] mt-1">{acc.id}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     ))}
