@@ -8,9 +8,10 @@ interface AdminPanelProps {
     state: AppState;
     updateState: (updates: Partial<AppState>) => void;
     syncWithSupabase: () => Promise<void>;
+    persistToSupabase: () => Promise<void>;
 }
 
-export default function AdminPanel({ state, updateState, syncWithSupabase }: AdminPanelProps) {
+export default function AdminPanel({ state, updateState, syncWithSupabase, persistToSupabase }: AdminPanelProps) {
     const T = TRANSLATIONS[state.currentLanguage];
     const [password, setPassword] = useState('');
     const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
@@ -23,6 +24,57 @@ export default function AdminPanel({ state, updateState, syncWithSupabase }: Adm
         sectionImageSrc: '',
         description: { sv: '', da: '', de: '', en: '' }
     });
+
+    const [isUploading, setIsUploading] = useState<string | null>(null);
+
+    const uploadImage = async (file: File, folder: string) => {
+        if (!supabase) return null;
+        setIsUploading(folder);
+        try {
+            // Sanitize filename: remove special characters, replace spaces with underscores
+            const cleanName = file.name
+                .replace(/[#ÖÄÅöäå]/g, (m) => {
+                    const map: Record<string, string> = { '#': '_hash', 'Ö': 'O', 'Ä': 'A', 'Å': 'A', 'ö': 'o', 'ä': 'a', 'å': 'a' };
+                    return map[m] || m;
+                })
+                .replace(/\s+/g, '_');
+            
+            const fileName = `${Date.now()}_${cleanName}`;
+            const filePath = `${folder}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('konfigurator-images')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('konfigurator-images')
+                .getPublicUrl(filePath);
+
+            return data.publicUrl;
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Failed to upload image. Please try again.');
+            return null;
+        } finally {
+            setIsUploading(null);
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'imageSrc' | 'sectionImageSrc') => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Determine folder based on profile type or general category
+        const folder = 'PROFILE';
+        // Actually, looking at previous context, profiles are in PROFILE/
+        
+        const url = await uploadImage(file, folder);
+        if (url) {
+            setProfileForm(prev => ({ ...prev, [field]: url }));
+        }
+    };
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -156,6 +208,14 @@ export default function AdminPanel({ state, updateState, syncWithSupabase }: Adm
                         </div>
                         <div className="flex items-center gap-4">
                             <button 
+                                onClick={persistToSupabase}
+                                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg"
+                                title="Save all changes to Supabase Database"
+                            >
+                                <Save size={16} />
+                                PUSH TO SUPABASE
+                            </button>
+                            <button 
                                 onClick={handleAddProfile}
                                 className="flex items-center gap-2 bg-[#C5A059] text-black px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#C5A059]/80 transition-all"
                             >
@@ -211,27 +271,40 @@ export default function AdminPanel({ state, updateState, syncWithSupabase }: Adm
                                             <option value="PVC">PVC</option>
                                             <option value="ALU">ALU</option>
                                             <option value="WOOD">WOOD</option>
+                                            <option value="WOOD-ALU">WOOD-ALU</option>
                                         </select>
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{T.admin_image}</label>
-                                        <input 
-                                            type="text" 
-                                            value={profileForm.imageSrc}
-                                            onChange={e => setProfileForm({...profileForm, imageSrc: e.target.value})}
-                                            className="tech-input" 
-                                            placeholder="https://..."
-                                        />
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                value={profileForm.imageSrc}
+                                                onChange={e => setProfileForm({...profileForm, imageSrc: e.target.value})}
+                                                className="tech-input flex-grow" 
+                                                placeholder="https://..."
+                                            />
+                                            <label className="cursor-pointer bg-white/5 border border-white/10 hover:bg-white/10 p-3 rounded-xl transition-all flex items-center justify-center min-w-[48px]">
+                                                {isUploading === 'imageSrc' ? <Loader2 size={18} className="animate-spin text-[#C5A059]" /> : <Upload size={18} className="text-[#C5A059]" />}
+                                                <input type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'imageSrc')} disabled={!!isUploading} />
+                                            </label>
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Section Image URL (_sektion)</label>
-                                        <input 
-                                            type="text" 
-                                            value={profileForm.sectionImageSrc || ''}
-                                            onChange={e => setProfileForm({...profileForm, sectionImageSrc: e.target.value})}
-                                            className="tech-input" 
-                                            placeholder="https://..._sektion.png"
-                                        />
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                value={profileForm.sectionImageSrc || ''}
+                                                onChange={e => setProfileForm({...profileForm, sectionImageSrc: e.target.value})}
+                                                className="tech-input flex-grow" 
+                                                placeholder="https://..._sektion.png"
+                                            />
+                                            <label className="cursor-pointer bg-white/5 border border-white/10 hover:bg-white/10 p-3 rounded-xl transition-all flex items-center justify-center min-w-[48px]">
+                                                {isUploading === 'sectionImageSrc' ? <Loader2 size={18} className="animate-spin text-[#C5A059]" /> : <Upload size={18} className="text-[#C5A059]" />}
+                                                <input type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'sectionImageSrc')} disabled={!!isUploading} />
+                                            </label>
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">

@@ -22,4 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-public/images/
+public/images/*
+!public/images/.gitkeep

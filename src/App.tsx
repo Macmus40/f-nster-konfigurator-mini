@@ -133,6 +133,49 @@ export default function App() {
         }
     };
 
+    const persistToSupabase = async () => {
+        if (!supabase) return;
+        updateState({ supabaseStatus: 'loading' });
+
+        try {
+            // Upsert profiles
+            const { error: pError } = await supabase.from('profiles').upsert(state.profiles);
+            if (pError) throw pError;
+
+            // Upsert products
+            const { error: prError } = await supabase.from('products').upsert(state.products);
+            if (prError) throw prError;
+
+            // Upsert accessories
+            const { error: aError } = await supabase.from('accessories').upsert(state.accessories);
+            if (aError) throw aError;
+
+            // Update mappings
+            // First clear existing mappings for the profiles we have
+            const profileNames = state.profiles.map(p => p.name);
+            await supabase.from('profile_product_map').delete().in('profile_name', profileNames);
+            
+            const mappingRows: any[] = [];
+            Object.entries(state.profileProductMap).forEach(([profileName, productNames]) => {
+                productNames.forEach(productName => {
+                    mappingRows.push({ profile_name: profileName, product_name: productName });
+                });
+            });
+
+            if (mappingRows.length > 0) {
+                const { error: mError } = await supabase.from('profile_product_map').insert(mappingRows);
+                if (mError) throw mError;
+            }
+
+            updateState({ supabaseStatus: 'connected' });
+            alert("Data successfully saved to Supabase!");
+        } catch (err) {
+            console.error("Supabase Persist Error:", err);
+            updateState({ supabaseStatus: 'error' });
+            alert("Failed to save data to Supabase.");
+        }
+    };
+
     const toggleTheme = () => {
         updateState({ theme: state.theme === 'dark' ? 'light' : 'dark' });
     };
@@ -762,7 +805,7 @@ export default function App() {
                     </aside>
                 </div>
             </main>
-            <AdminPanel state={state} updateState={updateState} syncWithSupabase={syncWithSupabase} />
+            <AdminPanel state={state} updateState={updateState} syncWithSupabase={syncWithSupabase} persistToSupabase={persistToSupabase} />
 
             {/* INFO MODAL */}
             <AnimatePresence>
