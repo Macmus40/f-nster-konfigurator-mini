@@ -37,6 +37,7 @@ export default function App() {
         aiMessage: "",
         aiIsLoading: false,
         supabaseStatus: 'disconnected',
+        syncMessage: null,
         isAdminAuthenticated: false
     });
 
@@ -46,15 +47,27 @@ export default function App() {
 
     // --- EFFECTS ---
     useEffect(() => {
-        const saved = localStorage.getItem('offert_app_data_v1');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                setState(prev => ({ ...prev, ...parsed }));
-            } catch (e) {
-                console.error("Failed to parse saved state", e);
+        const initApp = async () => {
+            // 1. Najpierw ładujemy z localStorage (szybki start)
+            const saved = localStorage.getItem('offert_app_data_v1');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    setState(prev => ({ ...prev, ...parsed }));
+                } catch (e) {
+                    console.error("Failed to parse saved state", e);
+                }
             }
-        }
+            
+            // 2. Potem dociągamy świeże dane z Supabase (nadpisują localStorage)
+            if (supabase) {
+                await syncWithSupabase();
+            } else {
+                console.warn("Supabase client not initialized. Check your environment variables.");
+            }
+        };
+        
+        initApp();
     }, []);
 
     useEffect(() => {
@@ -74,40 +87,61 @@ export default function App() {
     };
 
     const syncWithSupabase = async () => {
-        if (!supabase) return;
+        if (!supabase) {
+            updateState({ supabaseStatus: 'error' });
+            return;
+        }
         updateState({ supabaseStatus: 'loading' });
 
         try {
-            const { data: profiles, error: pError } = await supabase.from('profiles').select('*');
-            if (pError) throw pError;
-            
-            const { data: products, error: prError } = await supabase.from('products').select('*');
-            if (prError) throw prError;
-            
-            const { data: accessories, error: aError } = await supabase.from('accessories').select('*');
-            if (aError) throw aError;
-            
-            const { data: mapping, error: mError } = await supabase.from('profile_product_map').select('*');
+            // Pobieramy wszystko równolegle dla szybkości
+            const [pRes, prRes, aRes, mRes, amRes, sRes] = await Promise.all([
+                supabase.from('profiles').select('*'),
+                supabase.from('products').select('*'),
+                supabase.from('accessories').select('*'),
+                supabase.from('profile_product_map').select('*'),
+                supabase.from('profile_accessory_map').select('*'),
+                supabase.from('app_settings').select('*').single()
+            ]);
+
+            if (pRes.error) throw pRes.error;
+            if (prRes.error) throw prRes.error;
+            if (aRes.error) throw aRes.error;
             
             const updates: Partial<AppState> = { supabaseStatus: 'connected' };
-            if (profiles && profiles.length > 0) updates.profiles = profiles;
-            if (products && products.length > 0) updates.products = products;
-            if (accessories && accessories.length > 0) updates.accessories = accessories;
             
-            // Automatyczna korekta linków do obrazów, jeśli pochodzą ze starych wersji
+            if (pRes.data && pRes.data.length > 0) updates.profiles = pRes.data;
+            if (prRes.data && prRes.data.length > 0) updates.products = prRes.data;
+            if (aRes.data && aRes.data.length > 0) updates.accessories = aRes.data;
+            
+            if (!mRes.error && mRes.data) {
+                const newMap: Record<string, string[]> = {};
+                mRes.data.forEach((row: any) => {
+                    if (!newMap[row.profile_name]) newMap[row.profile_name] = [];
+                    newMap[row.profile_name].push(row.product_name);
+                });
+                updates.profileProductMap = newMap;
+            }
+
+            if (!amRes.error && amRes.data) {
+                const newAccMap: Record<string, string[]> = {};
+                amRes.data.forEach((row: any) => {
+                    if (!newAccMap[row.profile_name]) newAccMap[row.profile_name] = [];
+                    newAccMap[row.profile_name].push(row.accessory_id);
+                });
+                updates.profileAccessoryMap = newAccMap;
+            }
+
+            if (!sRes.error && sRes.data) {
+                updates.disabledProfiles = sRes.data.disabled_profiles || [];
+            }
+
+            // Automatyczna korekta linków do obrazów
             const fixImageUrl = (url: string) => {
                 if (!url) return url;
-                // Zamiana fönster/dörr na fonster/dorrar i dodawanie brakujących przedrostków
-                let fixedUrl = url
+                return url
                     .replace(/\/f%C3%B6nster\//g, '/fonster/')
                     .replace(/\/d%C3%B6rr\//g, '/dorrar/');
-                
-                // Dodawanie przedrostka fonster_ jeśli go brakuje w folderze fonster
-                if (fixedUrl.includes('/fonster/') && !fixedUrl.includes('/fonster/fonster_')) {
-                    fixedUrl = fixedUrl.replace(/\/fonster\//g, '/fonster/fonster_');
-                }
-                
-                return fixedUrl;
             };
 
             if (updates.products) {
@@ -116,42 +150,43 @@ export default function App() {
                     imageSrc: fixImageUrl(p.imageSrc)
                 }));
             }
-            
-            if (!mError && mapping) {
-                const newMap: Record<string, string[]> = {};
-                mapping.forEach((row: any) => {
-                    if (!newMap[row.profile_name]) newMap[row.profile_name] = [];
-                    newMap[row.profile_name].push(row.product_name);
-                });
-                updates.profileProductMap = newMap;
-            }
 
             updateState(updates);
-        } catch (err) {
+            updateState({ 
+                syncMessage: { text: "Data successfully pulled from Supabase", type: 'success' }
+            });
+            setTimeout(() => updateState({ syncMessage: null }), 3000);
+            return true;
+        } catch (err: any) {
             console.error("Supabase Sync Error:", err);
-            updateState({ supabaseStatus: 'error' });
+            updateState({ 
+                supabaseStatus: 'error',
+                syncMessage: { text: `Pull failed: ${err.message}`, type: 'error' }
+            });
+            setTimeout(() => updateState({ syncMessage: null }), 5000);
+            return false;
         }
     };
 
     const persistToSupabase = async () => {
-        if (!supabase) return;
+        if (!supabase) {
+            alert("Supabase is not configured! Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+            return;
+        }
         updateState({ supabaseStatus: 'loading' });
 
         try {
-            // Upsert profiles
-            const { error: pError } = await supabase.from('profiles').upsert(state.profiles);
-            if (pError) throw pError;
+            // 1. Upsert profiles, products, accessories
+            const { error: pErr } = await supabase.from('profiles').upsert(state.profiles);
+            if (pErr) throw pErr;
+            
+            const { error: prErr } = await supabase.from('products').upsert(state.products);
+            if (prErr) throw prErr;
+            
+            const { error: aErr } = await supabase.from('accessories').upsert(state.accessories);
+            if (aErr) throw aErr;
 
-            // Upsert products
-            const { error: prError } = await supabase.from('products').upsert(state.products);
-            if (prError) throw prError;
-
-            // Upsert accessories
-            const { error: aError } = await supabase.from('accessories').upsert(state.accessories);
-            if (aError) throw aError;
-
-            // Update mappings
-            // First clear existing mappings for the profiles we have
+            // 2. Update Product Mappings
             const profileNames = state.profiles.map(p => p.name);
             await supabase.from('profile_product_map').delete().in('profile_name', profileNames);
             
@@ -161,18 +196,43 @@ export default function App() {
                     mappingRows.push({ profile_name: profileName, product_name: productName });
                 });
             });
-
             if (mappingRows.length > 0) {
-                const { error: mError } = await supabase.from('profile_product_map').insert(mappingRows);
-                if (mError) throw mError;
+                const { error: mErr } = await supabase.from('profile_product_map').insert(mappingRows);
+                if (mErr) throw mErr;
             }
 
-            updateState({ supabaseStatus: 'connected' });
-            alert("Data successfully saved to Supabase!");
-        } catch (err) {
+            // 3. Update Accessory Mappings
+            await supabase.from('profile_accessory_map').delete().in('profile_name', profileNames);
+            const accMappingRows: any[] = [];
+            Object.entries(state.profileAccessoryMap).forEach(([profileName, accIds]) => {
+                accIds.forEach(accId => {
+                    accMappingRows.push({ profile_name: profileName, accessory_id: accId });
+                });
+            });
+            if (accMappingRows.length > 0) {
+                const { error: amErr } = await supabase.from('profile_accessory_map').insert(accMappingRows);
+                if (amErr) throw amErr;
+            }
+
+            // 4. Update Global Settings (Disabled Profiles)
+            const { error: sErr } = await supabase.from('app_settings').upsert({ 
+                id: 1, 
+                disabled_profiles: state.disabledProfiles 
+            });
+            if (sErr) throw sErr;
+
+            updateState({ 
+                supabaseStatus: 'connected',
+                syncMessage: { text: "Data successfully pushed to Supabase!", type: 'success' }
+            });
+            setTimeout(() => updateState({ syncMessage: null }), 3000);
+        } catch (err: any) {
             console.error("Supabase Persist Error:", err);
-            updateState({ supabaseStatus: 'error' });
-            alert("Failed to save data to Supabase.");
+            updateState({ 
+                supabaseStatus: 'error',
+                syncMessage: { text: `Push failed: ${err.message}`, type: 'error' }
+            });
+            setTimeout(() => updateState({ syncMessage: null }), 5000);
         }
     };
 

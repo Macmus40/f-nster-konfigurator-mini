@@ -56,5 +56,6 @@ export interface AppState {
     aiMessage: string;
     aiIsLoading: boolean;
     supabaseStatus: 'disconnected' | 'loading' | 'connected' | 'error';
+    syncMessage: { text: string; type: 'success' | 'error' } | null;
     isAdminAuthenticated: boolean;
 }

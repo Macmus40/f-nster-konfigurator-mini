@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { AppState, Profile, Product, Accessory } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { supabase } from '../supabaseClient';
@@ -7,15 +8,19 @@ import { Settings, X, Upload, Download, CheckCircle2, AlertCircle, Loader2, Chec
 interface AdminPanelProps {
     state: AppState;
     updateState: (updates: Partial<AppState>) => void;
-    syncWithSupabase: () => Promise<void>;
+    syncWithSupabase: () => Promise<any>;
     persistToSupabase: () => Promise<void>;
 }
 
 export default function AdminPanel({ state, updateState, syncWithSupabase, persistToSupabase }: AdminPanelProps) {
     const T = TRANSLATIONS[state.currentLanguage];
     const [password, setPassword] = useState('');
+    const [activeTab, setActiveTab] = useState<'profiles' | 'products'>('profiles');
     const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
     const [isAddingProfile, setIsAddingProfile] = useState(false);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [isAddingProduct, setIsAddingProduct] = useState(false);
+    
     const [profileForm, setProfileForm] = useState<Profile>({
         name: '',
         type: 'PVC',
@@ -25,7 +30,20 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
         description: { sv: '', da: '', de: '', en: '' }
     });
 
+    const [productForm, setProductForm] = useState<Product>({
+        name: '',
+        category: 'Fönster',
+        imageSrc: ''
+    });
+
     const [isUploading, setIsUploading] = useState<string | null>(null);
+
+    const [localMessage, setLocalMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
+    const showMessage = (text: string, type: 'success' | 'error' = 'success') => {
+        setLocalMessage({ text, type });
+        setTimeout(() => setLocalMessage(null), 3000);
+    };
 
     const uploadImage = async (file: File, folder: string) => {
         if (!supabase) return null;
@@ -55,24 +73,26 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
             return data.publicUrl;
         } catch (error) {
             console.error('Upload error:', error);
-            alert('Failed to upload image. Please try again.');
+            showMessage('Failed to upload image. Please try again.', 'error');
             return null;
         } finally {
             setIsUploading(null);
         }
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'imageSrc' | 'sectionImageSrc') => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'imageSrc' | 'sectionImageSrc' | 'productImage') => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Determine folder based on profile type or general category
-        const folder = 'PROFILE';
-        // Actually, looking at previous context, profiles are in PROFILE/
+        const folder = field === 'productImage' ? 'PRODUCT' : 'PROFILE';
         
         const url = await uploadImage(file, folder);
         if (url) {
-            setProfileForm(prev => ({ ...prev, [field]: url }));
+            if (field === 'productImage') {
+                setProductForm(prev => ({ ...prev, imageSrc: url }));
+            } else {
+                setProfileForm(prev => ({ ...prev, [field]: url }));
+            }
         }
     };
 
@@ -82,7 +102,7 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
         if (password === correctPass) {
             updateState({ isAdminAuthenticated: true });
         } else {
-            alert(T.admin_pass_error);
+            showMessage(T.admin_pass_error, 'error');
         }
     };
 
@@ -127,6 +147,51 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
         updateState({ profileAccessoryMap: map });
     };
 
+    const handleAddProduct = () => {
+        setProductForm({
+            name: '',
+            category: 'Fönster',
+            imageSrc: ''
+        });
+        setIsAddingProduct(true);
+        setEditingProduct(null);
+    };
+
+    const handleEditProduct = (product: Product) => {
+        setProductForm({ ...product });
+        setEditingProduct(product);
+        setIsAddingProduct(false);
+    };
+
+    const handleDeleteProduct = (productName: string) => {
+        const newProducts = state.products.filter(p => p.name !== productName);
+        updateState({ products: newProducts });
+        showMessage(`Product "${productName}" deleted`);
+    };
+
+    const handleSaveProduct = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!productForm.name) {
+            showMessage("Product name is required", "error");
+            return;
+        }
+
+        let newProducts = [...state.products];
+        if (editingProduct) {
+            newProducts = newProducts.map(p => p.name === editingProduct.name ? productForm : p);
+        } else {
+            if (newProducts.find(p => p.name === productForm.name)) {
+                showMessage("Product with this name already exists", "error");
+                return;
+            }
+            newProducts.push(productForm);
+        }
+
+        updateState({ products: newProducts });
+        setIsAddingProduct(false);
+        setEditingProduct(null);
+        showMessage("Product saved successfully");
+    };
     const handleAddProfile = () => {
         setProfileForm({
             name: '',
@@ -147,10 +212,9 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
     };
 
     const handleDeleteProfile = (profileName: string) => {
-        if (window.confirm(`${T.admin_delete}?`)) {
-            const newProfiles = state.profiles.filter(p => p.name !== profileName);
-            updateState({ profiles: newProfiles });
-        }
+        const newProfiles = state.profiles.filter(p => p.name !== profileName);
+        updateState({ profiles: newProfiles });
+        showMessage(`Profile "${profileName}" deleted`);
     };
 
     const saveProfile = (e: React.FormEvent) => {
@@ -161,7 +225,7 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
             newProfiles = newProfiles.map(p => p.name === editingProfile.name ? profileForm : p);
         } else {
             if (newProfiles.some(p => p.name === profileForm.name)) {
-                alert("Profile with this name already exists!");
+                showMessage("Profile with this name already exists!", "error");
                 return;
             }
             newProfiles.push(profileForm);
@@ -170,6 +234,7 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
         updateState({ profiles: newProfiles });
         setIsAddingProfile(false);
         setEditingProfile(null);
+        showMessage("Profile saved successfully");
     };
 
     if (!state.isAdminOpen) return null;
@@ -204,23 +269,72 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
                     <div className="p-8 border-b border-[var(--border-color)] bg-[#C5A059]/5 flex justify-between items-center">
                         <div>
                             <h2 className="text-2xl font-black font-montserrat text-[#C5A059] uppercase tracking-tighter">{T.admin_title}</h2>
-                            <p className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-widest mt-2">{T.admin_desc}</p>
+                            <div className="flex gap-4 mt-4">
+                                <button 
+                                    onClick={() => setActiveTab('profiles')}
+                                    className={`text-[10px] font-black uppercase tracking-widest pb-2 border-b-2 transition-all ${activeTab === 'profiles' ? 'border-[#C5A059] text-[#C5A059]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}
+                                >
+                                    Profiles
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('products')}
+                                    className={`text-[10px] font-black uppercase tracking-widest pb-2 border-b-2 transition-all ${activeTab === 'products' ? 'border-[#C5A059] text-[#C5A059]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}
+                                >
+                                    Products
+                                </button>
+                            </div>
                         </div>
                         <div className="flex items-center gap-4">
+                            <AnimatePresence>
+                                {localMessage && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                                            localMessage.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                        }`}
+                                    >
+                                        {localMessage.text}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                            {state.syncMessage && (
+                                <motion.div 
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                                        state.syncMessage.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                    }`}
+                                >
+                                    {state.syncMessage.text}
+                                </motion.div>
+                            )}
                             <button 
-                                onClick={persistToSupabase}
-                                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg"
-                                title="Save all changes to Supabase Database"
+                                 onClick={syncWithSupabase}
+                                 disabled={state.supabaseStatus === 'loading'}
+                                 className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                 title="Load latest data from Supabase"
                             >
-                                <Save size={16} />
+                                {state.supabaseStatus === 'loading' ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                                PULL FROM SUPABASE
+                            </button>
+                            <button 
+                                 onClick={persistToSupabase}
+                                 disabled={state.supabaseStatus === 'loading'}
+                                 className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                 title="Save all changes to Supabase Database"
+                            >
+                                {state.supabaseStatus === 'loading' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                 PUSH TO SUPABASE
                             </button>
                             <button 
-                                onClick={handleAddProfile}
+                                onClick={activeTab === 'profiles' ? handleAddProfile : handleAddProduct}
                                 className="flex items-center gap-2 bg-[#C5A059] text-black px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#C5A059]/80 transition-all"
                             >
                                 <Plus size={16} />
-                                {T.admin_add_profile}
+                                {activeTab === 'profiles' ? T.admin_add_profile : "ADD PRODUCT"}
                             </button>
                             <div className="flex items-center gap-3 pl-6 border-l border-[var(--border-color)]">
                                 <div className="text-right">
@@ -240,7 +354,9 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
                     </div>
                     
                     <div className="flex-grow overflow-y-auto p-8 custom-scroll">
-                        {(isAddingProfile || editingProfile) && (
+                        {activeTab === 'profiles' ? (
+                            <>
+                                {(isAddingProfile || editingProfile) && (
                             <div className="mb-12 p-8 rounded-3xl border-2 border-[#C5A059] bg-[#C5A059]/5 animate-in slide-in-from-top duration-300">
                                 <div className="flex justify-between items-center mb-8">
                                     <h3 className="text-lg font-black text-[#C5A059] uppercase tracking-widest">
@@ -481,6 +597,107 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
                                 );
                             })}
                         </div>
+                            </>
+                        ) : (
+                            <div className="space-y-12">
+                                {(isAddingProduct || editingProduct) && (
+                                    <div className="mb-12 p-8 rounded-3xl border-2 border-[#C5A059] bg-[#C5A059]/5 animate-in slide-in-from-top duration-300">
+                                        <div className="flex justify-between items-center mb-8">
+                                            <h3 className="text-lg font-black text-[#C5A059] uppercase tracking-widest">
+                                                {editingProduct ? `EDIT PRODUCT: ${editingProduct.name}` : "ADD NEW PRODUCT"}
+                                            </h3>
+                                            <button onClick={() => { setIsAddingProduct(false); setEditingProduct(null); }} className="text-[var(--text-muted)] hover:text-white">
+                                                <X size={24} />
+                                            </button>
+                                        </div>
+                                        <form onSubmit={handleSaveProduct} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Product Name</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={productForm.name}
+                                                    onChange={e => setProductForm({...productForm, name: e.target.value})}
+                                                    className="tech-input" 
+                                                    required 
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Category</label>
+                                                <select 
+                                                    value={productForm.category}
+                                                    onChange={e => setProductForm({...productForm, category: e.target.value})}
+                                                    className="tech-input"
+                                                >
+                                                    <option value="Fönster">Fönster</option>
+                                                    <option value="Dörrar">Dörrar</option>
+                                                    <option value="Skjutdörrar">Skjutdörrar</option>
+                                                </select>
+                                            </div>
+                                            <div className="md:col-span-2 space-y-2">
+                                                <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Image URL</label>
+                                                <div className="flex gap-2">
+                                                    <input 
+                                                        type="text" 
+                                                        value={productForm.imageSrc}
+                                                        onChange={e => setProductForm({...productForm, imageSrc: e.target.value})}
+                                                        className="tech-input flex-grow" 
+                                                        placeholder="https://..."
+                                                    />
+                                                    <label className="cursor-pointer bg-white/5 border border-white/10 hover:bg-white/10 p-3 rounded-xl transition-all flex items-center justify-center min-w-[48px]">
+                                                        {isUploading === 'PRODUCT' ? <Loader2 size={18} className="animate-spin text-[#C5A059]" /> : <Upload size={18} className="text-[#C5A059]" />}
+                                                        <input type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'productImage')} disabled={!!isUploading} />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div className="md:col-span-2 flex justify-end gap-4 mt-4">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => { setIsAddingProduct(false); setEditingProduct(null); }}
+                                                    className="px-8 py-3 rounded-xl border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all"
+                                                >
+                                                    CANCEL
+                                                </button>
+                                                <button 
+                                                    type="submit"
+                                                    className="btn-gold px-12 py-3 rounded-xl text-[10px] flex items-center gap-2"
+                                                >
+                                                    <Save size={16} />
+                                                    SAVE PRODUCT
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                    {state.products.map(product => (
+                                        <div key={product.name} className="bg-white/5 border border-white/10 p-6 rounded-2xl flex flex-col gap-4 relative group">
+                                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                                <button 
+                                                    onClick={() => handleEditProduct(product)}
+                                                    className="p-2 rounded-lg bg-black/40 text-[#C5A059] hover:bg-[#C5A059] hover:text-black transition-all"
+                                                >
+                                                    <Edit2 size={14} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteProduct(product.name)}
+                                                    className="p-2 rounded-lg bg-black/40 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                            <div className="aspect-square bg-black/20 rounded-xl flex items-center justify-center p-4">
+                                                <img src={product.imageSrc} alt={product.name} className="max-h-full object-contain" referrerPolicy="no-referrer" />
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-[10px] font-black text-[#C5A059] uppercase tracking-widest mb-1">{product.category}</p>
+                                                <h4 className="text-sm font-black uppercase tracking-widest">{product.name}</h4>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     
                     <div className="p-6 bg-[var(--bg-subtle)] border-t border-[var(--border-color)] flex justify-end">
