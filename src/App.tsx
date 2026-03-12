@@ -581,7 +581,8 @@ export default function App() {
                         </section>
 
                         {/* STEP 2: PRODUCTS */}
-                        <section id="step-02" className={`reveal transition-opacity duration-500 ${!state.selectedProfile ? 'opacity-30 pointer-events-none' : ''}`}>
+                        {state.selectedProfile && (
+                        <section id="step-02" className="reveal transition-opacity duration-500">
                             <div className="flex items-center justify-between mb-12">
                                 <div className="flex items-center space-x-6">
                                     <span className="text-3xl font-black text-[var(--text-muted)] opacity-20 font-montserrat">02</span>
@@ -625,9 +626,11 @@ export default function App() {
                                 );
                             })}
                         </section>
+                        )}
 
                         {/* STEP 3: CONFIGURATION */}
-                        <section id="step-03" className={`reveal transition-opacity duration-500 ${!state.pendingEntry ? 'opacity-30 pointer-events-none' : ''}`}>
+                        {state.pendingEntry && (
+                        <section id="step-03" className="reveal transition-opacity duration-500">
                             <div className="flex items-center justify-between mb-12">
                                 <div className="flex items-center space-x-6">
                                     <span className="text-3xl font-black text-[var(--text-muted)] opacity-20 font-montserrat">03</span>
@@ -635,8 +638,7 @@ export default function App() {
                                 </div>
                             </div>
                             
-                            {state.pendingEntry && (
-                                <div className="tech-card border-2 border-[#C5A059] overflow-hidden">
+                            <div className="tech-card border-2 border-[#C5A059] overflow-hidden">
                                     <div className="flex flex-col xl:flex-row items-start gap-10 p-6 sm:p-10">
                                         <div className="flex flex-col items-start gap-4 w-full xl:w-1/3 border-b xl:border-b-0 xl:border-r border-[var(--border-color)] pb-8 xl:pb-0 xl:pr-10">
                                             <p className="text-xs text-[#C5A059] font-bold uppercase tracking-[0.3em]">{state.pendingEntry.profile.name}</p>
@@ -813,8 +815,8 @@ export default function App() {
                                         </button>
                                     </div>
                                 </div>
-                            )}
                         </section>
+                        )}
                     </div>
 
                     {/* RIGHT: SUMMARY & FORM */}
