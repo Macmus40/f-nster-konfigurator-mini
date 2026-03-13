@@ -42,6 +42,18 @@ export default function App() {
     });
 
     const [showSection, setShowSection] = useState(false);
+    const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+
+    const preloadImages = (urls: string[]) => {
+        urls.forEach(url => {
+            if (!url || loadedImages.has(url)) return;
+            const img = new Image();
+            img.src = url;
+            img.onload = () => {
+                setLoadedImages(prev => new Set([...prev, url]));
+            };
+        });
+    };
 
     const T = TRANSLATIONS[state.currentLanguage];
 
@@ -159,6 +171,16 @@ export default function App() {
             // Automatyczna korekta linków do obrazów
             // (Przeniesione wyżej do mapowania danych)
             
+            if (updates.products) {
+                const allImages = [
+                    ...(updates.profiles?.map(p => p.imageSrc) || []),
+                    ...(updates.profiles?.map(p => p.sectionImageSrc) || []),
+                    ...(updates.products?.map(p => p.imageSrc) || []),
+                    ...(updates.accessories?.slice(0, 20).map(a => a.imageSrc) || [])
+                ].filter(Boolean) as string[];
+                preloadImages(allImages);
+            }
+
             updateState(updates);
             updateState({ 
                 syncMessage: { text: "Data successfully pulled from Supabase", type: 'success' }
@@ -561,8 +583,19 @@ export default function App() {
                                                     <Info size={16} />
                                                 </button>
                                                 
-                                                <div className="w-full md:w-1/3 h-48 md:h-64 p-6 bg-[var(--bg-subtle)] flex items-center justify-center rounded-xl border border-[var(--border-color)]">
-                                                    <img src={profile.imageSrc} alt={profile.name} className="max-h-full object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
+                                                <div className="w-full md:w-1/3 h-48 md:h-64 p-6 bg-[var(--bg-subtle)] flex items-center justify-center rounded-xl border border-[var(--border-color)] relative overflow-hidden group">
+                                                    {!loadedImages.has(profile.imageSrc) && (
+                                                        <div className="absolute inset-0 bg-white/5 animate-pulse flex items-center justify-center">
+                                                            <div className="w-8 h-8 border-2 border-[#C5A059]/20 border-t-[#C5A059] rounded-full animate-spin"></div>
+                                                        </div>
+                                                    )}
+                                                    <img 
+                                                        src={profile.imageSrc} 
+                                                        alt={profile.name} 
+                                                        className={`max-h-full object-contain drop-shadow-2xl transition-all duration-700 group-hover:scale-110 ${loadedImages.has(profile.imageSrc) ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+                                                        referrerPolicy="no-referrer"
+                                                        onLoad={() => setLoadedImages(prev => new Set([...prev, profile.imageSrc]))}
+                                                    />
                                                 </div>
                                                 
                                                 <div className="w-full md:w-2/3 space-y-6">
@@ -622,8 +655,17 @@ export default function App() {
                                                         onClick={() => addProduct(product.name)}
                                                         className={`tech-card cursor-pointer flex flex-col items-center text-center p-6 group ${isSelected ? 'selected' : ''}`}
                                                     >
-                                                        <div className="h-32 w-full mb-6 flex items-center justify-center">
-                                                            <img src={product.imageSrc} alt={product.name} className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
+                                                        <div className="h-32 w-full mb-6 flex items-center justify-center relative overflow-hidden">
+                                                            {!loadedImages.has(product.imageSrc) && (
+                                                                <div className="absolute inset-0 bg-white/5 animate-pulse rounded-xl"></div>
+                                                            )}
+                                                            <img 
+                                                                src={product.imageSrc} 
+                                                                alt={product.name} 
+                                                                className={`max-h-full object-contain transition-all duration-500 group-hover:scale-110 ${loadedImages.has(product.imageSrc) ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+                                                                referrerPolicy="no-referrer"
+                                                                onLoad={() => setLoadedImages(prev => new Set([...prev, product.imageSrc]))}
+                                                            />
                                                         </div>
                                                         <p className="text-xs font-black uppercase tracking-widest">{product.name}</p>
                                                     </div>
@@ -940,18 +982,31 @@ export default function App() {
                                 <X size={24} />
                             </button>
 
-                            <div className="w-full md:w-1/2 p-8 sm:p-12 bg-[#C5A059]/5 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[var(--border-color)] relative">
-                                <AnimatePresence mode="wait">
-                                    <motion.img 
-                                        key={showSection ? 'section' : 'profile'}
-                                        initial={{ opacity: 0, x: showSection ? 20 : -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: showSection ? -20 : 20 }}
-                                        src={showSection && state.infoProfile.sectionImageSrc ? state.infoProfile.sectionImageSrc : state.infoProfile.imageSrc} 
-                                        alt={state.infoProfile.name} 
-                                        className="max-h-[300px] md:max-h-[450px] object-contain drop-shadow-[0_0_50px_rgba(197,160,89,0.2)]" 
-                                    />
-                                </AnimatePresence>
+                                <div className="w-full md:w-1/2 p-8 sm:p-12 bg-[#C5A059]/5 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[var(--border-color)] relative overflow-hidden">
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={showSection ? 'section' : 'profile'}
+                                            className="relative w-full h-full flex items-center justify-center"
+                                        >
+                                            {(!loadedImages.has(showSection && state.infoProfile.sectionImageSrc ? state.infoProfile.sectionImageSrc : state.infoProfile.imageSrc)) && (
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="w-12 h-12 border-4 border-[#C5A059]/20 border-t-[#C5A059] rounded-full animate-spin"></div>
+                                                </div>
+                                            )}
+                                            <motion.img 
+                                                initial={{ opacity: 0, x: showSection ? 20 : -20 }}
+                                                animate={{ opacity: loadedImages.has(showSection && state.infoProfile.sectionImageSrc ? state.infoProfile.sectionImageSrc : state.infoProfile.imageSrc) ? 1 : 0, x: 0 }}
+                                                exit={{ opacity: 0, x: showSection ? -20 : 20 }}
+                                                src={showSection && state.infoProfile.sectionImageSrc ? state.infoProfile.sectionImageSrc : state.infoProfile.imageSrc} 
+                                                alt={state.infoProfile.name} 
+                                                className="max-h-[300px] md:max-h-[450px] object-contain drop-shadow-[0_0_50px_rgba(197,160,89,0.2)]" 
+                                                onLoad={() => {
+                                                    const url = showSection && state.infoProfile.sectionImageSrc ? state.infoProfile.sectionImageSrc : state.infoProfile.imageSrc;
+                                                    setLoadedImages(prev => new Set([...prev, url]));
+                                                }}
+                                            />
+                                        </motion.div>
+                                    </AnimatePresence>
 
                                 {state.infoProfile.sectionImageSrc && (
                                     <div className="mt-8 flex bg-black/20 p-1 rounded-xl border border-white/10">
