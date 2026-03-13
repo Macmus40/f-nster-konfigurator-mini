@@ -34,7 +34,7 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
 
     const [productForm, setProductForm] = useState<Product>({
         name: '',
-        category: 'Fönster',
+        category: 'Okna',
         imageSrc: ''
     });
 
@@ -163,7 +163,7 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
     const handleAddProduct = () => {
         setProductForm({
             name: '',
-            category: 'Fönster',
+            category: 'Okna',
             imageSrc: '',
             sort_order: 0
         });
@@ -710,9 +710,9 @@ export default function AdminPanel({ state, updateState, syncWithSupabase, persi
                                                     onChange={e => setProductForm({...productForm, category: e.target.value})}
                                                     className="tech-input"
                                                 >
-                                                    <option value="Fönster">Fönster</option>
-                                                    <option value="Dörrar">Dörrar</option>
-                                                    <option value="Skjutdörrar">Skjutdörrar</option>
+                                                    <option value="Okna">Fönster (Okna)</option>
+                                                    <option value="Drzwi">Dörrar (Drzwi)</option>
+                                                    <option value="terrassystem">Skjutdörrar (terrassystem)</option>
                                                 </select>
                                             </div>
                                             <div className="space-y-2">

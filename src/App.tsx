@@ -93,6 +93,13 @@ export default function App() {
         }
         updateState({ supabaseStatus: 'loading' });
 
+        const fixImageUrl = (url: string) => {
+            if (!url) return url;
+            return url
+                .replace(/\/f%C3%B6nster\//g, '/fonster/')
+                .replace(/\/d%C3%B6rr\//g, '/dorrar/');
+        };
+
         try {
             // Pobieramy wszystko równolegle dla szybkości
             const [pRes, prRes, aRes, mRes, amRes, sRes] = await Promise.all([
@@ -110,9 +117,22 @@ export default function App() {
             
             const updates: Partial<AppState> = { supabaseStatus: 'connected' };
             
-            updates.profiles = pRes.data || [];
-            updates.products = prRes.data || [];
-            updates.accessories = aRes.data || [];
+            updates.profiles = (pRes.data || []).map((p: any) => ({
+                ...p,
+                imageSrc: fixImageUrl(p.imageSrc),
+                sectionImageSrc: fixImageUrl(p.sectionImageSrc)
+            }));
+            updates.products = (prRes.data || []).map((p: any) => ({
+                ...p,
+                category: p.category === 'Fönster' ? 'Okna' : 
+                          p.category === 'Dörrar' ? 'Drzwi' : 
+                          p.category === 'Skjutdörrar' ? 'terrassystem' : p.category,
+                imageSrc: fixImageUrl(p.imageSrc)
+            }));
+            updates.accessories = (aRes.data || []).map((a: any) => ({
+                ...a,
+                imageSrc: fixImageUrl(a.imageSrc)
+            }));
             
             if (!mRes.error && mRes.data) {
                 const newMap: Record<string, string[]> = {};
@@ -137,20 +157,8 @@ export default function App() {
             }
 
             // Automatyczna korekta linków do obrazów
-            const fixImageUrl = (url: string) => {
-                if (!url) return url;
-                return url
-                    .replace(/\/f%C3%B6nster\//g, '/fonster/')
-                    .replace(/\/d%C3%B6rr\//g, '/dorrar/');
-            };
-
-            if (updates.products) {
-                updates.products = updates.products.map((p: any) => ({
-                    ...p,
-                    imageSrc: fixImageUrl(p.imageSrc)
-                }));
-            }
-
+            // (Przeniesione wyżej do mapowania danych)
+            
             updateState(updates);
             updateState({ 
                 syncMessage: { text: "Data successfully pulled from Supabase", type: 'success' }
