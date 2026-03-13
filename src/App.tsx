@@ -15,6 +15,31 @@ import AdminPanel from './components/AdminPanel';
 const apiKey = process.env.GEMINI_API_KEY || 'dummy_key';
 const ai = new GoogleGenAI({ apiKey });
 
+const Tooltip = ({ text, children }: { text: string, children: React.ReactNode }) => {
+    const [isVisible, setIsVisible] = useState(false);
+
+    return (
+        <div className="relative inline-block" onMouseEnter={() => setIsVisible(true)} onMouseLeave={() => setIsVisible(false)}>
+            {children}
+            <AnimatePresence>
+                {isVisible && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-4 bg-black/95 backdrop-blur-xl border border-[#C5A059]/40 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[200] w-64 text-[11px] leading-relaxed text-white font-medium pointer-events-none text-center"
+                    >
+                        <div className="relative">
+                            {text}
+                            <div className="absolute top-[calc(100%+12px)] left-1/2 -translate-x-1/2 border-[8px] border-transparent border-t-black/95"></div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
 export default function App() {
     const [state, setState] = useState<AppState>({
         currentLanguage: 'sv',
@@ -604,10 +629,18 @@ export default function App() {
                                                         <p className="text-xs text-[#C5A059] font-bold tracking-[0.3em] uppercase">{profile.type}</p>
                                                     </div>
                                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm font-mono">
-                                                        <div className="spec-item"><span className="text-[var(--text-muted)] block mb-1">Uw</span>{profile.specs.Uw}</div>
-                                                        <div className="spec-item"><span className="text-[var(--text-muted)] block mb-1">dB</span>{profile.specs.dB}</div>
-                                                        <div className="spec-item"><span className="text-[var(--text-muted)] block mb-1">Chambers</span>{profile.specs.chambers}</div>
-                                                        <div className="spec-item"><span className="text-[var(--text-muted)] block mb-1">Depth</span>{profile.specs.depth}</div>
+                                                        <Tooltip text={T.tip_uw}>
+                                                            <div className="spec-item cursor-help"><span className="text-[var(--text-muted)] block mb-1">Uw</span>{profile.specs.Uw}</div>
+                                                        </Tooltip>
+                                                        <Tooltip text={T.tip_db}>
+                                                            <div className="spec-item cursor-help"><span className="text-[var(--text-muted)] block mb-1">dB</span>{profile.specs.dB}</div>
+                                                        </Tooltip>
+                                                        <Tooltip text={T.tip_chambers}>
+                                                            <div className="spec-item cursor-help"><span className="text-[var(--text-muted)] block mb-1">Chambers</span>{profile.specs.chambers}</div>
+                                                        </Tooltip>
+                                                        <Tooltip text={T.tip_depth}>
+                                                            <div className="spec-item cursor-help"><span className="text-[var(--text-muted)] block mb-1">Depth</span>{profile.specs.depth}</div>
+                                                        </Tooltip>
                                                     </div>
                                                     {isSelected && (
                                                         <div className="inline-flex items-center gap-2 bg-[#C5A059] text-black px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest mt-4 shadow-[0_0_20px_rgba(197,160,89,0.4)]">
@@ -1034,22 +1067,30 @@ export default function App() {
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-6">
-                                        <div className="spec-item p-4 rounded-xl bg-white/5 border border-white/10">
-                                            <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">{T.info_uw}</span>
-                                            <span className="text-lg font-mono font-bold text-[#C5A059]">{state.infoProfile.specs.Uw}</span>
-                                        </div>
-                                        <div className="spec-item p-4 rounded-xl bg-white/5 border border-white/10">
-                                            <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">{T.info_acoustics}</span>
-                                            <span className="text-lg font-mono font-bold text-[#C5A059]">{state.infoProfile.specs.dB} dB</span>
-                                        </div>
-                                        <div className="spec-item p-4 rounded-xl bg-white/5 border border-white/10">
-                                            <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">{T.info_chambers}</span>
-                                            <span className="text-lg font-mono font-bold text-[#C5A059]">{state.infoProfile.specs.chambers}</span>
-                                        </div>
-                                        <div className="spec-item p-4 rounded-xl bg-white/5 border border-white/10">
-                                            <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">{T.info_depth}</span>
-                                            <span className="text-lg font-mono font-bold text-[#C5A059]">{state.infoProfile.specs.depth}</span>
-                                        </div>
+                                        <Tooltip text={T.tip_uw}>
+                                            <div className="spec-item p-4 rounded-xl bg-white/5 border border-white/10 cursor-help w-full">
+                                                <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">{T.info_uw}</span>
+                                                <span className="text-lg font-mono font-bold text-[#C5A059]">{state.infoProfile.specs.Uw}</span>
+                                            </div>
+                                        </Tooltip>
+                                        <Tooltip text={T.tip_db}>
+                                            <div className="spec-item p-4 rounded-xl bg-white/5 border border-white/10 cursor-help w-full">
+                                                <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">{T.info_acoustics}</span>
+                                                <span className="text-lg font-mono font-bold text-[#C5A059]">{state.infoProfile.specs.dB} dB</span>
+                                            </div>
+                                        </Tooltip>
+                                        <Tooltip text={T.tip_chambers}>
+                                            <div className="spec-item p-4 rounded-xl bg-white/5 border border-white/10 cursor-help w-full">
+                                                <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">{T.info_chambers}</span>
+                                                <span className="text-lg font-mono font-bold text-[#C5A059]">{state.infoProfile.specs.chambers}</span>
+                                            </div>
+                                        </Tooltip>
+                                        <Tooltip text={T.tip_depth}>
+                                            <div className="spec-item p-4 rounded-xl bg-white/5 border border-white/10 cursor-help w-full">
+                                                <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">{T.info_depth}</span>
+                                                <span className="text-lg font-mono font-bold text-[#C5A059]">{state.infoProfile.specs.depth}</span>
+                                            </div>
+                                        </Tooltip>
                                     </div>
 
                                     <div className="space-y-4">
