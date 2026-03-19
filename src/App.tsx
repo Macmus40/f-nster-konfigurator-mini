@@ -7,7 +7,7 @@ import { GoogleGenAI } from '@google/genai';
 import { 
     Settings, ShieldAlert, Sun, Moon, Info, Trash2, Check, 
     Upload, Download, X, ChevronRight, CheckCircle2, AlertCircle,
-    ShieldCheck, Lock, Waves, VolumeX, Sparkles
+    ShieldCheck, Lock, Waves, VolumeX, Sparkles, ZoomIn
 } from 'lucide-react';
 import AdminPanel from './components/AdminPanel';
 
@@ -49,6 +49,7 @@ export default function App() {
         lastSelectedProfileName: null,
         pendingEntry: null,
         infoProfile: null,
+        infoProduct: null,
         isAdminOpen: false,
         profiles: PROFILES,
         products: PRODUCTS,
@@ -159,17 +160,33 @@ export default function App() {
                 imageSrc: fixImageUrl(p.imageSrc),
                 sectionImageSrc: fixImageUrl(p.sectionImageSrc)
             }));
-            updates.products = (prRes.data || []).map((p: any) => ({
-                ...p,
-                category: p.category === 'Fönster' ? 'Okna' : 
-                          p.category === 'Dörrar' ? 'Drzwi' : 
-                          p.category === 'Skjutdörrar' ? 'terrassystem' : p.category,
-                imageSrc: fixImageUrl(p.imageSrc)
-            }));
-            updates.accessories = (aRes.data || []).map((a: any) => ({
-                ...a,
-                imageSrc: fixImageUrl(a.imageSrc)
-            }));
+            updates.products = (prRes.data || []).map((p: any) => {
+                let newName = p.name;
+                if (newName && newName.includes('Sł.Ruchomy')) {
+                    newName = newName.replace('Sł.Ruchomy', 'Flyttbar mittpost');
+                }
+                return {
+                    ...p,
+                    name: newName,
+                    category: p.category === 'Fönster' ? 'Okna' : 
+                              p.category === 'Dörrar' ? 'Drzwi' : 
+                              p.category === 'Skjutdörrar' ? 'terrassystem' : p.category,
+                    imageSrc: fixImageUrl(p.imageSrc)
+                };
+            });
+            updates.accessories = (aRes.data || []).map((a: any) => {
+                let newName = { ...a.name };
+                if (a.id === 'glass_2') {
+                    newName = { sv: '2-glas', da: '2-lags', de: '2-fach', en: '2-pane' };
+                } else if (a.id === 'glass_3') {
+                    newName = { sv: '3-glas', da: '3-lags', de: '3-fach', en: '3-pane' };
+                }
+                return {
+                    ...a,
+                    name: newName,
+                    imageSrc: fixImageUrl(a.imageSrc)
+                };
+            });
             
             if (!mRes.error && mRes.data) {
                 const newMap: Record<string, string[]> = {};
@@ -368,8 +385,8 @@ export default function App() {
                     id: Date.now(),
                     product,
                     profile: state.selectedProfile,
-                    width: 1000,
-                    height: 1200,
+                    width: '',
+                    height: '',
                     quantity: 1,
                     glassPanes: getFirstValid('Glass', 'glass_3'),
                     glassType: 'standard',
@@ -388,7 +405,7 @@ export default function App() {
             updateState({
                 pendingEntry: {
                     ...state.pendingEntry,
-                    [field]: (field === 'width' || field === 'height' || field === 'quantity') ? Number(val) : val
+                    [field]: (field === 'width' || field === 'height') ? (val === '' ? '' : Number(val)) : (field === 'quantity' ? Number(val) : val)
                 }
             });
         }
@@ -396,6 +413,10 @@ export default function App() {
 
     const confirmEntry = () => {
         if (state.pendingEntry) {
+            if (state.pendingEntry.width === '' || state.pendingEntry.height === '') {
+                alert(T.missing_dimensions);
+                return;
+            }
             const currentProfile = state.pendingEntry.profile;
             updateState({
                 formEntries: [...state.formEntries, state.pendingEntry],
@@ -686,8 +707,15 @@ export default function App() {
                                                     <div 
                                                         key={product.name}
                                                         onClick={() => addProduct(product.name)}
-                                                        className={`tech-card cursor-pointer flex flex-col items-center text-center p-6 group ${isSelected ? 'selected' : ''}`}
+                                                        className={`tech-card cursor-pointer flex flex-col items-center text-center p-6 group relative ${isSelected ? 'selected' : ''}`}
                                                     >
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); updateState({ infoProduct: product }); }}
+                                                            className="absolute top-3 left-3 w-8 h-8 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-[#C5A059]/30 text-[#C5A059] hover:bg-[#C5A059] hover:text-black hover:scale-110 transition-all z-20 shadow-lg"
+                                                            title="Zoom"
+                                                        >
+                                                            <ZoomIn size={14} />
+                                                        </button>
                                                         <div className="h-32 w-full mb-6 flex items-center justify-center relative overflow-hidden">
                                                             {!loadedImages.has(product.imageSrc) && (
                                                                 <div className="absolute inset-0 bg-white/5 animate-pulse rounded-xl"></div>
@@ -736,11 +764,11 @@ export default function App() {
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                                                 <div className="flex flex-col">
                                                     <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.width}</label>
-                                                    <input type="number" value={state.pendingEntry.width} onChange={(e) => updatePendingEntry('width', e.target.value)} className="tech-input text-lg font-mono py-3 px-4" />
+                                                    <input type="number" value={state.pendingEntry.width} onChange={(e) => updatePendingEntry('width', e.target.value)} placeholder="1000" className="tech-input text-lg font-mono py-3 px-4 placeholder-white/50" />
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.height}</label>
-                                                    <input type="number" value={state.pendingEntry.height} onChange={(e) => updatePendingEntry('height', e.target.value)} className="tech-input text-lg font-mono py-3 px-4" />
+                                                    <input type="number" value={state.pendingEntry.height} onChange={(e) => updatePendingEntry('height', e.target.value)} placeholder="1200" className="tech-input text-lg font-mono py-3 px-4 placeholder-white/50" />
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <label className="text-[9px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest">{T.quantity}</label>
@@ -1111,6 +1139,63 @@ export default function App() {
                                         {T.info_select}
                                     </button>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* PRODUCT INFO MODAL */}
+            <AnimatePresence>
+                {state.infoProduct && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => updateState({ infoProduct: null })} 
+                            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+                        ></motion.div>
+                        
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="glass w-full max-w-2xl rounded-3xl overflow-hidden relative shadow-2xl border-2 border-[#C5A059]/50 flex flex-col max-h-[90vh] p-8"
+                        >
+                            <button 
+                                onClick={() => updateState({ infoProduct: null })}
+                                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-black/20 flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition-all z-10"
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <div className="w-full h-full flex flex-col items-center justify-center space-y-8">
+                                <h2 className="text-2xl sm:text-3xl font-black font-montserrat tracking-tighter uppercase text-center">{state.infoProduct.name}</h2>
+                                <div className="relative w-full flex-grow flex items-center justify-center min-h-[300px]">
+                                    {!loadedImages.has(state.infoProduct.imageSrc) && (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="w-12 h-12 border-4 border-[#C5A059]/20 border-t-[#C5A059] rounded-full animate-spin"></div>
+                                        </div>
+                                    )}
+                                    <motion.img 
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: loadedImages.has(state.infoProduct.imageSrc) ? 1 : 0 }}
+                                        src={state.infoProduct.imageSrc} 
+                                        alt={state.infoProduct.name} 
+                                        className="max-h-[50vh] object-contain drop-shadow-[0_0_50px_rgba(197,160,89,0.2)]" 
+                                        onLoad={() => setLoadedImages(prev => new Set([...prev, state.infoProduct!.imageSrc]))}
+                                    />
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        if (state.infoProduct) addProduct(state.infoProduct.name);
+                                        updateState({ infoProduct: null });
+                                    }}
+                                    className="w-full max-w-sm btn-gold py-4 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                                >
+                                    {T.info_select}
+                                </button>
                             </div>
                         </motion.div>
                     </div>

@@ -27,8 +27,8 @@ export interface FormEntry {
     id: number;
     product: Product;
     profile: Profile;
-    width: number;
-    height: number;
+    width: number | '';
+    height: number | '';
     quantity: number;
     glassPanes: string;
     glassType: string;
@@ -46,6 +46,7 @@ export interface AppState {
     lastSelectedProfileName: string | null;
     pendingEntry: FormEntry | null;
     infoProfile: Profile | null;
+    infoProduct: Product | null;
     isAdminOpen: boolean;
     profiles: Profile[];
     products: Product[];
